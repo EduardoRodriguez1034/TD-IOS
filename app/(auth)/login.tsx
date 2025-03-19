@@ -15,6 +15,10 @@ const LoginScreen = () => {
     router.replace('/(tabs)');
   };
 
+  const handleForgotPassword = () => {
+    router.push('/forgot-password');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
@@ -50,7 +54,7 @@ const LoginScreen = () => {
 
         <Button
           mode="text"
-          onPress={() => {}}
+          onPress={handleForgotPassword}
           style={styles.forgotPasswordButton}
           labelStyle={styles.forgotPasswordText}
         >

@@ -1,0 +1,90 @@
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Text, Button } from 'react-native-paper';
+import { useRouter, Stack } from 'expo-router';
+import { COLORS } from '../constants/theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const PasswordChangedScreen = () => {
+  const router = useRouter();
+
+  const handleBackToLogin = () => {
+    router.replace('/login');
+  };
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      <View style={styles.content}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name="check" size={40} color="#fff" />
+        </View>
+
+        <Text style={styles.title}>¡Contraseña Cambiada!</Text>
+        <Text style={styles.subtitle}>
+          Tu contraseña ha sido cambiada exitosamente.
+        </Text>
+
+        <Button
+          mode="contained"
+          onPress={handleBackToLogin}
+          style={styles.button}
+          labelStyle={styles.buttonLabel}
+        >
+          Volver al Inicio de Sesión
+        </Button>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#2ECC71',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.black,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.gray,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  button: {
+    width: '100%',
+    paddingVertical: 8,
+    backgroundColor: COLORS.black,
+    borderRadius: 8,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
+
+export default PasswordChangedScreen; 
