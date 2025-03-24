@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
 import { COLORS } from '../constants/theme';
 
 export default function TabLayout() {
@@ -8,14 +9,33 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.gray,
-        headerStyle: {
-          backgroundColor: COLORS.white,
+        tabBarInactiveTintColor: '#666',
+        tabBarStyle: {
+          height: Platform.OS === 'ios' ? 85 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 30 : 8,
+          paddingTop: 8,
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#eee',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 2,
         },
-        headerTintColor: COLORS.primary,
-        headerTitleStyle: {
-          fontWeight: 'bold',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: -4,
         },
+        tabBarIconStyle: {
+          marginTop: 4,
+        },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
@@ -28,29 +48,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="patients"
+        name="new-appointment"
         options={{
-          title: 'Pacientes',
+          title: 'Nueva Cita',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-group" size={size} color={color} />
+            <MaterialCommunityIcons name="calendar-plus" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="appointments"
+        name="new-patient"
         options={{
-          title: 'Citas',
+          title: 'Nuevo Paciente',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" size={size} color={color} />
+            <MaterialCommunityIcons name="account-plus" size={size} color={color} />
           ),
         }}
       />
