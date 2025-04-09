@@ -17,7 +17,7 @@ Sigue estos pasos para configurar el proyecto en tu entorno local:
 
 1. Clona el repositorio:
 ```bash
-git clone https://github.com/TU_USUARIO/TruvalDental.git
+git clone https://github.com/EduardoRodriguez1034/TruvalDental.git
 cd TruvalDental
 ```
 
