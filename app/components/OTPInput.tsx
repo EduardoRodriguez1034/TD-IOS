@@ -29,7 +29,7 @@ const OTPInput = ({ code, setCode }: OTPInputProps) => {
 
   return (
     <View style={styles.container}>
-      {[0, 1, 2, 3].map((index) => (
+      {[0, 1, 2, 3, 4, 6].map((index) => (
         <RNTextInput
           key={index}
           ref={(ref) => {
