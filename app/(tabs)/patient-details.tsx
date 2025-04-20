@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Platform, SafeAreaView } from 'react-native';
-import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB } from 'react-native-paper';
+import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '../constants/theme';
+import * as DocumentPicker from 'expo-document-picker';
 
 // Datos de ejemplo (después se reemplazarán con datos reales)
 const MOCK_PATIENT = {
@@ -56,6 +57,24 @@ const PatientDetailsScreen = () => {
         return 'Inactivo';
       default:
         return 'Desconocido';
+    }
+  };
+
+  const handleDocumentUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf'],
+        copyToCacheDirectory: true,
+      });
+
+      if ('uri' in result) {
+        console.log('Archivo seleccionado:', result.uri);
+        // Aquí puedes manejar el archivo seleccionado
+      } else {
+        console.log('Selección cancelada');
+      }
+    } catch (error) {
+      console.error('Error al seleccionar el archivo:', error);
     }
   };
 
@@ -188,6 +207,15 @@ const PatientDetailsScreen = () => {
                   </Card>
                 ))}
               </View>
+
+              <Button
+                mode="outlined"
+                onPress={handleDocumentUpload}
+                style={styles.button}
+                contentStyle={styles.buttonContent}
+              >
+                Subir Consentimiento Informado
+              </Button>
             </Card.Content>
           </Card>
         </ScrollView>
@@ -365,6 +393,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  button: {
+    marginTop: 16,
+    borderRadius: 16,
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+  },
+  buttonContent: {
+    padding: 12,
   },
 });
 

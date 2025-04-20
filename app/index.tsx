@@ -20,6 +20,14 @@ const HomePage = () => {
       >
         Iniciar Sesión
       </Button>
+      <Button
+        mode="contained"
+        style={styles.registerButton}
+        labelStyle={styles.buttonLabel}
+        onPress={() => router.push('/register')}
+      >
+        Registrarse
+      </Button>
     </View>
   );
 };
@@ -42,9 +50,15 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
   },
   loginButton: {
-    marginBottom: 40,
+    marginBottom: 10,
     paddingVertical: 8,
     backgroundColor: '#2C3E50',
+    borderRadius: 8,
+  },
+  registerButton: {
+    marginBottom: 10,
+    paddingVertical: 8,
+    backgroundColor: '#3498DB',
     borderRadius: 8,
   },
   buttonLabel: {

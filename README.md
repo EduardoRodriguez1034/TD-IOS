@@ -26,6 +26,11 @@ cd TruvalDental
 npm install
 ```
 
+2.1. Instala la dependencia para subir archivos PDF:
+```bash
+npm install expo-document-picker
+```
+
 3. Instala Expo CLI globalmente (si no lo tienes instalado):
 ```bash
 npm install -g expo-cli

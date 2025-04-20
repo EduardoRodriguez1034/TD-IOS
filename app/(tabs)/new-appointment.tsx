@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView } from 'react-native';
-import { Text, TextInput, Button, IconButton, Card, Title } from 'react-native-paper';
+import { Text, TextInput, Button, IconButton, Card, Title, Menu, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 
@@ -10,6 +10,11 @@ const NewAppointmentScreen = () => {
   const [time, setTime] = useState('');
   const [patient, setPatient] = useState('');
   const [treatment, setTreatment] = useState('');
+  const [dentist, setDentist] = useState('');
+  const [visible, setVisible] = useState(false);
+
+  const openMenu = () => setVisible(true);
+  const closeMenu = () => setVisible(false);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -69,6 +74,18 @@ const NewAppointmentScreen = () => {
                   right={<TextInput.Icon icon="medical-bag" />}
                   mode="outlined"
                 />
+
+                <Menu
+                  visible={visible}
+                  onDismiss={closeMenu}
+                  anchor={<Button onPress={openMenu} mode="outlined" style={styles.input}>Seleccionar Dentista</Button>}
+                >
+                  <Menu.Item onPress={() => setDentist('Dr. Pérez')} title="Dr. Pérez" />
+                  <Menu.Item onPress={() => setDentist('Dra. Gómez')} title="Dra. Gómez" />
+                  <Menu.Item onPress={() => setDentist('Dr. López')} title="Dr. López" />
+                  <Divider />
+                  <Menu.Item onPress={() => setDentist('')} title="Ninguno" />
+                </Menu>
               </View>
 
               <View style={styles.buttonContainer}>

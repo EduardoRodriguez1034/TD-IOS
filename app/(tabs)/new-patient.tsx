@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, Dimensions, KeyboardAvoidingView, SafeAreaView } from 'react-native';
-import { Text, TextInput, Button, Card, Title, IconButton } from 'react-native-paper';
+import { Text, TextInput, Button, Card, Title, IconButton, Menu, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
+import * as DocumentPicker from 'expo-document-picker';
 
 const { width } = Dimensions.get('window');
 
 const NewPatientScreen = () => {
   const router = useRouter();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [gender, setGender] = useState('');
+  const [genderMenuVisible, setGenderMenuVisible] = useState(false);
   const [birthDate, setBirthDate] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -24,6 +29,23 @@ const NewPatientScreen = () => {
     }
     
     return age;
+  };
+
+  const openGenderMenu = () => setGenderMenuVisible(true);
+  const closeGenderMenu = () => setGenderMenuVisible(false);
+
+  const handleDocumentUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+      });
+      if (result.type === 'success') {
+        console.log('Archivo seleccionado:', result.uri);
+        // Aquí puedes manejar el archivo seleccionado
+      }
+    } catch (error) {
+      console.error('Error al seleccionar el archivo:', error);
+    }
   };
 
   return (
@@ -50,13 +72,40 @@ const NewPatientScreen = () => {
               
               <View style={styles.inputContainer}>
                 <TextInput
-                  label="Nombre Completo"
-                  value={name}
-                  onChangeText={setName}
+                  label="Nombre"
+                  value={firstName}
+                  onChangeText={setFirstName}
                   style={styles.input}
                   right={<TextInput.Icon icon="account" />}
                   mode="outlined"
                 />
+
+                <TextInput
+                  label="Apellido Paterno"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  style={styles.input}
+                  right={<TextInput.Icon icon="account" />}
+                  mode="outlined"
+                />
+
+                <TextInput
+                  label="Apellido Materno"
+                  value={middleName}
+                  onChangeText={setMiddleName}
+                  style={styles.input}
+                  right={<TextInput.Icon icon="account" />}
+                  mode="outlined"
+                />
+
+                <Menu
+                  visible={genderMenuVisible}
+                  onDismiss={closeGenderMenu}
+                  anchor={<Button onPress={openGenderMenu} mode="outlined" style={styles.input}>Seleccionar Sexo</Button>}
+                >
+                  <Menu.Item onPress={() => setGender('Hombre')} title="Hombre" />
+                  <Menu.Item onPress={() => setGender('Mujer')} title="Mujer" />
+                </Menu>
 
                 <TextInput
                   label="Fecha de Nacimiento"
@@ -80,16 +129,6 @@ const NewPatientScreen = () => {
                   right={<TextInput.Icon icon="phone" />}
                   mode="outlined"
                 />
-
-                <TextInput
-                  label="Correo Electrónico"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  style={styles.input}
-                  right={<TextInput.Icon icon="email" />}
-                  mode="outlined"
-                />
               </View>
 
               <View style={styles.buttonContainer}>
@@ -108,6 +147,14 @@ const NewPatientScreen = () => {
                   contentStyle={styles.buttonContent}
                 >
                   Guardar
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={handleDocumentUpload}
+                  style={styles.button}
+                  contentStyle={styles.buttonContent}
+                >
+                  Subir Consentimiento Informado
                 </Button>
               </View>
             </Card.Content>
