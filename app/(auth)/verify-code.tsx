@@ -1,29 +1,38 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
-import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import OTPInput from '../components/OTPInput';
+import { useAuthStore } from '../store/authStore';
 
 const VerifyCodeScreen = () => {
-  const [code, setCode] = useState<string[]>(['', '', '', '']);
+  const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
   const router = useRouter();
-  const { email } = useLocalSearchParams();
+  const { verifyEmail, error, isLoading } = useAuthStore();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await verifyEmail(code.join(''));
 
-  const handleSubmit = () => {
-    // TODO: Implementar la verificación del código cuando tengamos el backend
-    router.push({
-      pathname: '/new-password',
-      params: { email }
-    });
+      if (!result.success) {
+        console.log('Error:', result.message);
+        return;
+      } else {
+        router.replace('/success');
+      }
+    } catch (error) {
+      console.error('Error al verificar el código:', error);
+      return;
+    }
   };
 
   return (
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          title: 'Recuperar Contraseña',
+          title: 'Verificar correo electrónico',
           headerLeft: () => (
             <Button
               onPress={() => router.back()}
@@ -45,19 +54,18 @@ const VerifyCodeScreen = () => {
         </View>
 
         <Text style={styles.title}>Revisa tu Correo</Text>
-        <Text style={styles.subtitle}>Enviamos un código a</Text>
-        <Text style={styles.email}>{email}</Text>
-
+        <Text style={styles.subtitle}>Enviamos un código a tu correo</Text>
         <OTPInput code={code} setCode={setCode} />
-
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          style={styles.button}
-          labelStyle={styles.buttonLabel}
-        >
-          Confirmar
-        </Button>
+        {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            style={styles.button}
+            labelStyle={styles.buttonLabel}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Cargando...' : 'Confirmar Código'}
+          </Button>
       </View>
     </View>
   );

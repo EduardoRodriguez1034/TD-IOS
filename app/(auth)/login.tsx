@@ -1,22 +1,37 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, Title } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '../constants/theme';
+import { useAuthStore } from '../store/authStore';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const router = useRouter();
+  const { login } = useAuthStore();
+  const { token } = useLocalSearchParams();
 
-  const handleLogin = () => {
-    // Aquí implementaremos la lógica de autenticación
-    router.replace('/(tabs)');
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await login(email, password);
+      if (!result.success) {
+        console.log('Error:', result.message);
+        return;
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+      return;
+
+    }
   };
 
   const handleForgotPassword = () => {
-    router.push('/forgot-password');
+    router.push(`/forgot-password/`);
   };
 
   return (

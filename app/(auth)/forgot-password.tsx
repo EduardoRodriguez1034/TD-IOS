@@ -4,20 +4,30 @@ import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { Stack } from 'expo-router';
+import { useAuthStore } from '../store/authStore';
 
 const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState('');
+  const { forgotPassword, isLoading, error } = useAuthStore();
   const router = useRouter();
 
-  const handleNext = () => {
-    if (email.trim()) {
-      // Aquí implementaremos el envío del código
-      console.log('Enviando código a:', email);
-      // Navegar a la pantalla de verificación
-      router.push({
-        pathname: '/verify-code',
-        params: { email: email }
-      });
+  const handleNext = async (e) => {
+    e.preventDefault();
+    try {
+      if (email.trim()) {
+
+        const result = await forgotPassword(email);
+
+        if (!result.success) {
+          console.log('Error:', result.message);
+          return;
+        } else {
+          router.replace('/password-mail');
+        }
+      }
+    } catch (error) {
+      console.error('Error al enviar el correo:', error);
+      return;
     }
   };
 
@@ -52,16 +62,16 @@ const ForgotPasswordScreen = () => {
           keyboardType="email-address"
           autoCapitalize="none"
         />
-
-        <Button
-          mode="contained"
-          onPress={handleNext}
-          style={styles.button}
-          labelStyle={styles.buttonLabel}
-          disabled={!email.trim()}
-        >
-          Siguiente
-        </Button>
+        {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
+          <Button
+            mode="contained"
+            onPress={handleNext}
+            style={styles.button}
+            labelStyle={styles.buttonLabel}
+            disabled={!email.trim() || isLoading}
+          >
+            {isLoading ? 'Cargando...' : 'Siguiente'}
+          </Button>
       </View>
     </View>
   );
