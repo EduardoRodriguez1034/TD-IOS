@@ -16,7 +16,7 @@ const OTPInput = ({ code, setCode }: OTPInputProps) => {
     newCode[index] = text;
     setCode(newCode);
 
-    if (text.length === 1 && index < 3) {
+    if (text.length === 1 && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -29,7 +29,11 @@ const OTPInput = ({ code, setCode }: OTPInputProps) => {
 
   return (
     <View style={styles.container}>
+<<<<<<< Updated upstream
       {[0, 1, 2, 3, 4, 6].map((index) => (
+=======
+      {[0, 1, 2, 3, 4, 5].map((index) => (
+>>>>>>> Stashed changes
         <RNTextInput
           key={index}
           ref={(ref) => {
