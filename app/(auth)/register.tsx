@@ -36,6 +36,7 @@ const RegisterScreen = () => {
       </View>
       <TextInput
         id="username"
+
         label="Nombre de Usuario"
         value={username}
         onChangeText={setUsername}

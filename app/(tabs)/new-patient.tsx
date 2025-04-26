@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, Dimensions, KeyboardAvoidingView, SafeAreaView } from 'react-native';
-import { Text, TextInput, Button, Card, Title, IconButton } from 'react-native-paper';
+import { Text, TextInput, Button, Card, Title, IconButton, Menu, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
-<<<<<<< Updated upstream
-=======
 import * as DocumentPicker from 'expo-document-picker';
 import { usePatient } from '../store/authStore';
-
->>>>>>> Stashed changes
-
 const { width } = Dimensions.get('window');
 
 const NewPatientScreen = () => {
   const router = useRouter();
   const [name, setName] = useState('');
-<<<<<<< Updated upstream
-=======
   const [lastName, setLastName] = useState('');
   const [surName, setSurName] = useState('');
   const [sex, setSex] = useState('');
->>>>>>> Stashed changes
   const [birthDate, setBirthDate] = useState('');
   const [phone, setPhone] = useState('');
   const { createPatient, error, isLoading, isAuthenticated } = usePatient();
@@ -37,9 +29,7 @@ const NewPatientScreen = () => {
     
     return age;
   };*/
-
-<<<<<<< Updated upstream
-=======
+      
   /*const openSexMenu = () => setSexMenuVisible(true);
   const closeSexMenu = () => setSexMenuVisible(false);*/
 
@@ -73,7 +63,19 @@ const NewPatientScreen = () => {
     }
   };
 
->>>>>>> Stashed changes
+  const handleDocumentUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+      });
+      if (result.type === 'success') {
+        console.log('Archivo seleccionado:', result.uri);
+        // Aquí puedes manejar el archivo seleccionado
+      }
+    } catch (error) {
+      console.error('Error al seleccionar el archivo:', error);
+    }
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -98,21 +100,18 @@ const NewPatientScreen = () => {
 
               <View style={styles.inputContainer}>
                 <TextInput
-<<<<<<< Updated upstream
                   label="Nombre Completo"
-=======
-                  label="Nombre"
->>>>>>> Stashed changes
                   value={name}
                   onChangeText={setName}
+                  label="Nombre"
+                  value={firstName}
+                  onChangeText={setFirstName}
                   style={styles.input}
                   right={<TextInput.Icon icon="account" />}
                   mode="outlined"
                 />
 
                 <TextInput
-<<<<<<< Updated upstream
-=======
                   label="Apellido Paterno"
                   value={lastName}
                   onChangeText={setLastName}
@@ -140,7 +139,6 @@ const NewPatientScreen = () => {
                 />
 
                 <TextInput
->>>>>>> Stashed changes
                   label="Fecha de Nacimiento"
                   value={birthDate}
                   onChangeText={(text) => {
@@ -162,16 +160,6 @@ const NewPatientScreen = () => {
                   right={<TextInput.Icon icon="phone" />}
                   mode="outlined"
                 />
-
-                <TextInput
-                  label="Correo Electrónico"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  style={styles.input}
-                  right={<TextInput.Icon icon="email" />}
-                  mode="outlined"
-                />
               </View>
 
               <View style={styles.buttonContainer}>
@@ -191,11 +179,15 @@ const NewPatientScreen = () => {
                   contentStyle={styles.buttonContent}
                   disabled={!name.trim() || !lastName.trim() || !surName.trim() || isLoading}
                 >
-<<<<<<< Updated upstream
-                  Guardar
-=======
                   {isLoading ? 'Cargando...' : 'Añadir Paciente'}
->>>>>>> Stashed changes
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={handleDocumentUpload}
+                  style={styles.button}
+                  contentStyle={styles.buttonContent}
+                >
+                  Subir Consentimiento Informado
                 </Button>
               </View>
             </Card.Content>
