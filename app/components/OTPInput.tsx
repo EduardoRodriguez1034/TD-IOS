@@ -29,11 +29,7 @@ const OTPInput = ({ code, setCode }: OTPInputProps) => {
 
   return (
     <View style={styles.container}>
-<<<<<<< Updated upstream
-      {[0, 1, 2, 3, 4, 6].map((index) => (
-=======
       {[0, 1, 2, 3, 4, 5].map((index) => (
->>>>>>> Stashed changes
         <RNTextInput
           key={index}
           ref={(ref) => {
