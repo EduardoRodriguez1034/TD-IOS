@@ -18,6 +18,12 @@ export default function RootLayout() {
           options={{
             headerShown: false,
           }}
+        />        
+        <Stack.Screen
+          name="(patient)"
+          options={{
+            headerShown: false,
+          }}
         />
       </Stack>
     </PaperProvider>

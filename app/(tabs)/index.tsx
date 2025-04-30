@@ -1,17 +1,54 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform } from 'react-native';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { Card, Title, Paragraph, Button, IconButton, Avatar } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
+import { useAppointment } from '../store/authStore';
 
 const HomeScreen = () => {
   const router = useRouter();
-  const today = new Date();
-  const formattedDate = today.toLocaleDateString('es-ES', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+  const { getAppointmentByDate } = useAppointment();
+  const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
+
+  const formattedDate = useMemo(() => {
+    const today = new Date();
+    const d = today.toLocaleDateString('es-ES', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+    return d.charAt(0).toUpperCase() + d.slice(1);
+  }, []);
+
+  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<any[]>([]);
+
+ // Usamos useFocusEffect en lugar de useEffect
+ useFocusEffect(
+  useCallback(() => {
+    let isActive = true;
+    const fetchToday = async () => {
+      setLoading(true);
+      try {
+        const res = await getAppointmentByDate(todayStr);
+        if (isActive) {
+          if (res.success) {
+            setAppointments(res.appointments);
+          } else {
+            console.error('Error al traer citas:', res.error);
+            setAppointments([]);
+          }
+        }
+      } catch (e) {
+        console.error('Error inesperado:', e);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
+    fetchToday();
+    // cleanup
+    return () => { isActive = false; };
+  }, [getAppointmentByDate, todayStr])
+);
+
   // Capitalizar primera letra
   const dateString = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
@@ -40,12 +77,20 @@ const HomeScreen = () => {
             <Card.Content>
               <View style={styles.cardHeader}>
                 <Title style={styles.cardTitle}>Citas de Hoy</Title>
-                <Text style={styles.dateText}>{dateString}</Text>
+                <Text style={styles.dateText}>{formattedDate}</Text>
               </View>
-              <Paragraph>No hay citas programadas para hoy</Paragraph>
+
+              {loading ? (
+                <ActivityIndicator size="large" color={COLORS.primary} />
+              ) : appointments.length > 0 ? (
+                <Paragraph>Tienes {appointments.length} cita(s) programada(s) para hoy</Paragraph>
+              ) : (
+                <Paragraph>No tienes citas programadas para hoy</Paragraph>
+              )}
+
             </Card.Content>
             <Card.Actions style={styles.cardActions}>
-              <Button 
+              <Button
                 onPress={() => router.push('/appointments')}
                 labelStyle={styles.buttonLabel}
               >
@@ -102,37 +147,6 @@ const HomeScreen = () => {
                 Ver Pacientes
               </Button>
             </Card.Actions>
-          </Card>
-
-          {/* Inventario y Alertas */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.cardTitle}>Inventario y Alertas</Title>
-              <View style={styles.alertItem}>
-                <Avatar.Icon 
-                  size={40} 
-                  icon="alert-circle-outline" 
-                  style={[styles.alertIcon, { backgroundColor: '#ffe4e4' }]} 
-                  color="#cc0000" 
-                />
-                <View style={styles.alertText}>
-                  <Text style={styles.alertTitle}>Materiales por Agotar</Text>
-                  <Text style={styles.alertDescription}>2 productos necesitan reabastecimiento</Text>
-                </View>
-              </View>
-              <View style={styles.alertItem}>
-                <Avatar.Icon 
-                  size={40} 
-                  icon="medical-bag" 
-                  style={[styles.alertIcon, { backgroundColor: '#fff0e6' }]} 
-                  color="#cc5500" 
-                />
-                <View style={styles.alertText}>
-                  <Text style={styles.alertTitle}>Mantenimiento de Equipos</Text>
-                  <Text style={styles.alertDescription}>Próximo mantenimiento en 5 días</Text>
-                </View>
-              </View>
-            </Card.Content>
           </Card>
         </ScrollView>
       </View>

@@ -17,35 +17,6 @@ const NewPatientScreen = () => {
   const [phone, setPhone] = useState('');
   const { createPatient, error, isLoading, isAuthenticated } = usePatient();
 
-  /*const calculateAge = (birthDate: string) => {
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };*/
-      
-  /*const openSexMenu = () => setSexMenuVisible(true);
-  const closeSexMenu = () => setSexMenuVisible(false);*/
-
-  /*const handleDocumentUpload = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-      });
-      if (result.type === 'success') {
-        console.log('Archivo seleccionado:', result.uri);
-        // Aquí puedes manejar el archivo seleccionado
-      }
-    } catch (error) {
-      console.error('Error al seleccionar el archivo:', error);
-    }
-  };*/
   const handleNewPatient = async (e) => {
     e.preventDefault();
     try {
@@ -62,20 +33,7 @@ const NewPatientScreen = () => {
       return;
     }
   };
-
-  const handleDocumentUpload = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-      });
-      if (result.type === 'success') {
-        console.log('Archivo seleccionado:', result.uri);
-        // Aquí puedes manejar el archivo seleccionado
-      }
-    } catch (error) {
-      console.error('Error al seleccionar el archivo:', error);
-    }
-  };
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -103,9 +61,6 @@ const NewPatientScreen = () => {
                   label="Nombre Completo"
                   value={name}
                   onChangeText={setName}
-                  label="Nombre"
-                  value={firstName}
-                  onChangeText={setFirstName}
                   style={styles.input}
                   right={<TextInput.Icon icon="account" />}
                   mode="outlined"
@@ -180,14 +135,6 @@ const NewPatientScreen = () => {
                   disabled={!name.trim() || !lastName.trim() || !surName.trim() || isLoading}
                 >
                   {isLoading ? 'Cargando...' : 'Añadir Paciente'}
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={handleDocumentUpload}
-                  style={styles.button}
-                  contentStyle={styles.buttonContent}
-                >
-                  Subir Consentimiento Informado
                 </Button>
               </View>
             </Card.Content>

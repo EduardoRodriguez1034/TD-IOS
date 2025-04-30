@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getAuthCookie } from '../store/getAuthCookie';
 
 export const useAuthStore = create((set) => ({
     user: null,
@@ -7,34 +8,16 @@ export const useAuthStore = create((set) => ({
     isAuthenticated: false,
     isCheckingAuth: true,
 
-<<<<<<< Updated upstream
-    signup: async (email, password, username) => {
-        set({ isLoading: true, error: null });
-        try {
-            // Simulate a signup process
-            const response = await fetch(`https://54.176.10.118:8443/api/signup`, {
-=======
     signup: async (username, email, password) => {
         set({ isLoading: true, error: null });
 
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/signup`, {
->>>>>>> Stashed changes
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-<<<<<<< Updated upstream
-                body: JSON.stringify({ email, password, username }),
-            })
-            const data = await response.json();
-        } catch (error) {
-            console.log(error);
-        }
-    },
-    
-=======
                 body: JSON.stringify({
                     username,
                     email,
@@ -60,29 +43,17 @@ export const useAuthStore = create((set) => ({
         }
     },
 
->>>>>>> Stashed changes
     verifyEmail: async (code) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/verify-email`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ code }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, user: data.user });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al verificar correo:", error);
-            throw error;
-=======
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -96,7 +67,6 @@ export const useAuthStore = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 
@@ -104,20 +74,6 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/forgot-password`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ email }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, user: data.user });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al mandar correo de recuperacion de contraseña:", error);
-            throw error;
-=======
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -140,7 +96,6 @@ export const useAuthStore = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 
@@ -148,24 +103,13 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/reset-password/${token}`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ password }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, user: data.user });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al cambiar contraseña:", error);
-            throw error;
-=======
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -180,7 +124,6 @@ export const useAuthStore = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 
@@ -188,24 +131,13 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/login`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ email, password }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, user: data.user });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error en login:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -218,7 +150,6 @@ export const useAuthStore = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 
@@ -226,23 +157,12 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/logout`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, user: data.user });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al cerrar sesión:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -255,7 +175,32 @@ export const useAuthStore = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
+        }
+    },
+
+    getAllUsers: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch(`https://truval-dental.ddns.net:8443/user`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                set({ error: data.message });
+                return { isLoading: false, success: false, error: data.message };
+            }
+            set({ isLoading: false, isAuthenticated: true, user: data.user });
+            return { success: true, isLoading: false, isAuthenticated: true, user: data.user };
+
+        } catch (error) {
+            set({ isLoading: false, error: error.message });
+            console.error("Error al obtener usuarios:", error);
+            return { isLoading: false, success: false, error: error.message };
+        } finally {
+            set({ isLoading: false });
         }
     },
 
@@ -263,24 +208,13 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/user/${idUser}`, {
-<<<<<<< Updated upstream
-                method: 'PUT', 
-=======
                 method: 'PUT',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ username, email, password }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, user: data.user });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al actualizar usuario:", error);
-            throw error;
-=======
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -294,7 +228,6 @@ export const useAuthStore = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 
@@ -302,23 +235,12 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/user/${idUser}`, {
-<<<<<<< Updated upstream
-                method: 'DELETE', 
-=======
                 method: 'DELETE',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, user: data.user });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar usuario:", error);
-            throw error;
-=======
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -332,17 +254,12 @@ export const useAuthStore = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 }));
 
 export const usePatient = create((set) => ({
-<<<<<<< Updated upstream
-    patient: null, 
-=======
     patient: null,
->>>>>>> Stashed changes
     isLoading: false,
     error: null,
     isAuthenticated: false,
@@ -352,24 +269,13 @@ export const usePatient = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/patient`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ name, lastName, surName, sex, phone, birthDate }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, patient: data.patient });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al crear paciente:", error);
-            throw error;
-=======
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -383,31 +289,18 @@ export const usePatient = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
-    getAllPatient: async () => {
+    getAllPatients: async () => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/patient`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ name }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, patient: data.patient });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener los pacientes:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -420,31 +313,18 @@ export const usePatient = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getAPatient: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/patient/${idPatient}`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, patient: data.patient });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener el paciente:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -457,31 +337,19 @@ export const usePatient = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     updatePatient: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/patient/${idPatient}`, {
-<<<<<<< Updated upstream
-                method: 'PUT', 
-=======
                 method: 'PUT',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ name, lastName, surName, sex, phone, birthDate }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, patient: data.patient });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al actualizar el paciente:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -494,31 +362,19 @@ export const usePatient = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     deletePatient: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/patient/${idPatient}`, {
-<<<<<<< Updated upstream
-                method: 'DELETE', 
-=======
                 method: 'DELETE',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, patient: data.patient });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar el paciente:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -531,17 +387,12 @@ export const usePatient = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 }));
 
 export const useTreatment = create((set) => ({
-<<<<<<< Updated upstream
-    treatment: null, 
-=======
     treatment: null,
->>>>>>> Stashed changes
     isLoading: false,
     error: null,
     isAuthenticated: false,
@@ -551,24 +402,13 @@ export const useTreatment = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/treatment`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ treatmentType, description, price }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, treatment: data.treatment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al crear tratamiento:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -581,31 +421,17 @@ export const useTreatment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getAllTreatments: async () => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/treatment`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ treatmentType, description, price }),
             });
             const data = await response.json();
-<<<<<<< Updated upstream
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, treatment: data.treatment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener los tratamientos:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -618,31 +444,18 @@ export const useTreatment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getATreatment: async (idTreatment) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/treatment/${idTreatment}`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ treatmentType, description, price }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, treatment: data.treatment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener el tratamiento:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -655,31 +468,19 @@ export const useTreatment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     updateTreatment: async (idTreatment) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/treatment/${idTreatment}`, {
-<<<<<<< Updated upstream
-                method: 'PUT', 
-=======
                 method: 'PUT',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ treatmentType, description, price }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, treatment: data.treatment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al actualizar el tratamiento:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -692,31 +493,19 @@ export const useTreatment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     deleteTreatment: async (idTreatment) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/treatment/${idTreatment}`, {
-<<<<<<< Updated upstream
-                method: 'DELETE', 
-=======
                 method: 'DELETE',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ idTreatment }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, treatment: data.treatment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar el tratamiento:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -729,17 +518,12 @@ export const useTreatment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 }));
 
 export const useNote = create((set) => ({
-<<<<<<< Updated upstream
-    note: null, 
-=======
     note: null,
->>>>>>> Stashed changes
     isLoading: false,
     error: null,
     isAuthenticated: false,
@@ -749,24 +533,13 @@ export const useNote = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ title, description, idNoteType, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, note: data.note });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al crear la nota:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -779,31 +552,19 @@ export const useNote = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getAllNotes: async () => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify(),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, note: data.note });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener las notas:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -816,31 +577,19 @@ export const useNote = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getANote: async (idNote) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note/${idNote}`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ title, description, idNoteType, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, note: data.note });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener la nota:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -853,31 +602,19 @@ export const useNote = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     updateNote: async (idNote) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note/${idNote}`, {
-<<<<<<< Updated upstream
-                method: 'PUT', 
-=======
                 method: 'PUT',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ title, description, idNoteType, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, note: data.note });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al actualizar la nota:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -890,27 +627,12 @@ export const useNote = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     deleteNote: async (idNote) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note/${idNote}`, {
-<<<<<<< Updated upstream
-                method: 'DELETE', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, note: data.note });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar la nota:", error);
-            throw error;
-=======
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -929,17 +651,12 @@ export const useNote = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 }));
 
 export const useNoteType = create((set) => ({
-<<<<<<< Updated upstream
-    noteType: null, 
-=======
     noteType: null,
->>>>>>> Stashed changes
     isLoading: false,
     error: null,
     isAuthenticated: false,
@@ -949,20 +666,6 @@ export const useNoteType = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note-type`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({noteType, description }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, noteType: data.noteType });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al crear el tipo de nota:", error);
-            throw error;
-=======
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -982,27 +685,12 @@ export const useNoteType = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getAllNoteTypes: async () => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note-type`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({noteType, description}),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, noteType: data.noteType });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener los tipos de notas:", error);
-            throw error;
-=======
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1022,31 +710,19 @@ export const useNoteType = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getANoteType: async (idNoteType) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note-type/${idNoteType}`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ noteType, description }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, noteType: data.noteType });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener el tipo de nota:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1059,31 +735,19 @@ export const useNoteType = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     updateNoteType: async (idNoteType) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note-type/${idNoteType}`, {
-<<<<<<< Updated upstream
-                method: 'PUT', 
-=======
                 method: 'PUT',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ noteType, description }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, noteType: data.noteType });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al actualizar la nota:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1096,27 +760,12 @@ export const useNoteType = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     deleteNoteType: async (idNoteType) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note-type/${idNoteType}`, {
-<<<<<<< Updated upstream
-                method: 'DELETE', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, noteType: data.noteType });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar el tipo de nota:", error);
-            throw error;
-=======
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1135,44 +784,30 @@ export const useNoteType = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 }));
 
 export const useAppointment = create((set) => ({
-<<<<<<< Updated upstream
-    appointment: null, 
-=======
     appointment: null,
->>>>>>> Stashed changes
     isLoading: false,
     error: null,
     isAuthenticated: false,
     isCheckingAuth: true,
 
-    createAppointment: async () => {
+    createAppointment: async ({date, idPatient, idTreatment, idUser}) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient , idTreatment }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, appointment: data.appointment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al crear la cita:", error);
-            throw error;
-=======
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
+                body: JSON.stringify({ 
+                    date, 
+                    idUser, 
+                    idPatient, 
+                    idTreatment,
+                }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1188,31 +823,15 @@ export const useAppointment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getAllAppointments: async () => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient , idTreatment }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, appointment: data.appointment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener las citas:", error);
-            throw error;
-=======
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
+                credentials: 'include'
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1228,31 +847,15 @@ export const useAppointment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getAnAppointment: async (idAppointment) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/${idAppointment}`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient , idTreatment }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, appointment: data.appointment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener la cita:", error);
-            throw error;
-=======
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1270,14 +873,13 @@ export const useAppointment = create((set) => ({
             set({ isLoading: false });
         }
     },
-    getAppointmentByPatient: async (idPatient) => {
+    getAppointmentByPatientId: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/patient/${idPatient}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1302,7 +904,6 @@ export const useAppointment = create((set) => ({
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1323,24 +924,39 @@ export const useAppointment = create((set) => ({
     getAppointmentByDate: async (date) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/date`, {
+            const authToken = await getAuthCookie();
+            const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/date?date=${date}`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
                 credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
             });
+
             const data = await response.json();
-            console.log("Response data:", data);
+            
             if (!response.ok) {
-                set({ error: data.message });
-                return { isLoading: false, success: false, error: data.message };
+                throw new Error(data.message || `Error ${response.status}`);
             }
 
-            return { success: true, isLoading: false, isAuthenticated: true, appointment: data.appointment };
+            if (!data.success) {
+                throw new Error(data.message || "Error al obtener citas");
+            }
+
+            return {
+                success: true,
+                appointments: data.appointments || [],
+                message: data.message
+            };
         } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al buscar citas por fecha:", error);
-            return { isLoading: false, success: false, error: error.message };
+            console.error("Error al buscar citas:", error);
+            set({ error: error.message });
+            return {
+                success: false,
+                error: error.message,
+                isNetworkError: error.message.includes('Failed to fetch')
+            };
         } finally {
             set({ isLoading: false });
         }
@@ -1352,7 +968,6 @@ export const useAppointment = create((set) => ({
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ startDate, endDate, appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1392,27 +1007,12 @@ export const useAppointment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     updateAppointment: async (idAppointment) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/${idAppointment}`, {
-<<<<<<< Updated upstream
-                method: 'PUT', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient , idTreatment }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, appointment: data.appointment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al actualizar la cita:", error);
-            throw error;
-=======
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1431,27 +1031,12 @@ export const useAppointment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     deleteAppointment: async (idAppointment) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/${idAppointment}`, {
-<<<<<<< Updated upstream
-                method: 'DELETE', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, appointment: data.appointment });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar la cita:", error);
-            throw error;
-=======
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1470,17 +1055,12 @@ export const useAppointment = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
 }));
 
 export const useClinicalRecord = create((set) => ({
-<<<<<<< Updated upstream
-    clinical: null, 
-=======
     clinical: null,
->>>>>>> Stashed changes
     isLoading: false,
     error: null,
     isAuthenticated: false,
@@ -1490,24 +1070,13 @@ export const useClinicalRecord = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record`, {
-<<<<<<< Updated upstream
-                method: 'POST', 
-=======
                 method: 'POST',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ treatmentsDone, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al crear el expediente clinico:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1520,31 +1089,18 @@ export const useClinicalRecord = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getAllClinicalRecords: async () => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record/`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ treatmentsDone, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener los expedientes clinicos:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1557,33 +1113,18 @@ export const useClinicalRecord = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     getClinicalRecordByPk: async (idClinicalRecord) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record/${idClinicalRecord}`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ treatmentsDone, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener el expediente clinico:", error);
-            throw error;
-        }
-    },    
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1598,65 +1139,16 @@ export const useClinicalRecord = create((set) => ({
             set({ isLoading: false });
         }
     },
->>>>>>> Stashed changes
     getClinicalRecordByPatientId: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record/patient/${idPatient}`, {
-<<<<<<< Updated upstream
-                method: 'GET', 
-=======
                 method: 'GET',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ treatmentsDone, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener el expediente clinico:", error);
-            throw error;
-        }
-    },
-    addInformedConcent: async (idPatient) => {
-        set({ isLoading: true, error: null });
-        try {
-            const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record//informed-concent/${idPatient}`, {
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ treatmentsDone, idPatient }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al añadir consentimiento informado:", error);
-            throw error;
-        }
-    },
-    getInformedConcent: async (idPatient) => {
-        set({ isLoading: true, error: null });
-        try {
-            const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record//informed-concent/${idPatient}`, {
-                method: 'GET', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ treatmentsDone, idPatient }),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al obtener el consentimiento informado:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1669,31 +1161,19 @@ export const useClinicalRecord = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     updateClinicalRecord: async (idClinicalRecord) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record/${idClinicalRecord}`, {
-<<<<<<< Updated upstream
-                method: 'PUT', 
-=======
                 method: 'PUT',
->>>>>>> Stashed changes
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ treatmentsDone, idPatient }),
             });
             const data = await response.json();
             console.log("Response data:", data);
-<<<<<<< Updated upstream
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al actualizar el expediente clinico:", error);
-            throw error;
-=======
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1706,30 +1186,12 @@ export const useClinicalRecord = create((set) => ({
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
->>>>>>> Stashed changes
         }
     },
     deleteClinicalRecord: async (idClinicalRecord) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/clinical-record/${idClinicalRecord}`, {
-<<<<<<< Updated upstream
-                method: 'DELETE', 
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(),
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            set({ isLoading: false, isAuthenticated: true, clinical: data.clinical });
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar el expediente clinico:", error);
-            throw error;
-        }
-    },
-}));
-=======
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1759,14 +1221,20 @@ export const useInformedConsent = create((set) => ({
     isAuthenticated: false,
     isCheckingAuth: true,
 
-    addInformedConcent: async (idPatient) => {
+    addInformedConsent: async (idPatient, file) => {
         set({ isLoading: true, error: null });
         try {
+            const formData = new FormData();
+            formData.append('file', {
+                uri: file.uri,
+                name: file.name,
+                type: file.mimeType,
+            });
+
             const response = await fetch(`https://truval-dental.ddns.net:8443/informed-consent/${idPatient}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({file }),
+                body: formData,
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1785,14 +1253,13 @@ export const useInformedConsent = create((set) => ({
         }
     },
 
-    getInformedConcent: async (idPatient) => {
+    getInformedConsent: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/informed-consent/${idPatient}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ file }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -1811,4 +1278,3 @@ export const useInformedConsent = create((set) => ({
         }
     },
 }))
->>>>>>> Stashed changes

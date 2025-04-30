@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, Dimensions } from 'react-native';
 import { Card, Title, Button, IconButton, Searchbar, FAB, Avatar, Chip, Menu, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
+import { usePatient } from '../store/authStore';
 
 // Datos de ejemplo
-const patients = [
+/*const patients = [
   {
     id: '1',
     name: 'Juan Pérez',
@@ -102,13 +103,32 @@ const patients = [
     status: 'active',
     phone: '+34 963 741 852',
   }
-];
+];*/
 
 const PatientsScreen = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [patients, setPatients] = useState([]);
+  const { getAllPatients, error, isAuthenticated } = usePatient();
+
+
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      const result = await getAllPatients();
+      if (result && result.success && Array.isArray(result.patient)) {
+        setPatients(result.patient);
+      } else {
+        console.error(result?.error || 'Error fetching patients');
+        setPatients([]);
+      }
+    };
+  
+    fetchPatients();
+  }, []);
+  
 
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -164,57 +184,58 @@ const PatientsScreen = () => {
           />
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.container}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {filteredPatients.map((patient) => (
-            <Card 
-              key={patient.id} 
-              style={styles.patientCard}
-              onPress={() => router.push(`/patients/${patient.id}`)}
-            >
-              <Card.Content style={styles.cardContent}>
-                <View style={styles.patientInfo}>
-                  <Avatar.Text 
-                    size={50} 
-                    label={patient.name.split(' ').map(n => n[0]).join('')}
-                    style={styles.avatar}
-                  />
-                  <View style={styles.patientDetails}>
-                    <Title style={styles.patientName}>{patient.name}</Title>
-                    <Text style={styles.patientPhone}>{patient.phone}</Text>
+          {filteredPatients.map((patient) => {
+            const fullName = `${patient.name || ''} ${patient.lastName || ''} ${patient.surName || ''}`.trim();
+
+            return (
+              <Card
+                key={patient.idPatient}
+                style={styles.patientCard}
+                onPress={() => router.push(`/patient/${patient.idPatient}`)}
+              >
+                <Card.Content style={styles.cardContent}>
+                  <View style={styles.patientInfo}>
+                    <View style={styles.patientDetails}>
+                      <Title style={styles.patientName}>
+                        {fullName || 'Nombre no disponible'}
+                      </Title>
+                      <Text style={styles.patientPhone}>{patient.phone}</Text>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.patientStatus}>
-                  <Chip 
-                    mode="outlined" 
-                    style={[styles.statusChip, { borderColor: getStatusColor(patient.status) }]}
-                    textStyle={{ color: getStatusColor(patient.status) }}
-                  >
-                    {getStatusLabel(patient.status)}
-                  </Chip>
-                </View>
-              </Card.Content>
-              <Card.Actions style={styles.cardActions}>
-                <View style={styles.visitInfo}>
-                  <Text style={styles.visitLabel}>Última visita:</Text>
-                  <Text style={styles.visitDate}>
-                    {new Date(patient.lastVisit).toLocaleDateString('es-ES')}
-                  </Text>
-                </View>
-                {patient.nextAppointment && (
+                  <View style={styles.patientStatus}>
+                    <Chip
+                      mode="outlined"
+                      style={[styles.statusChip, { borderColor: getStatusColor(patient.status) }]}
+                      textStyle={{ color: getStatusColor(patient.status) }}
+                    >
+                      {getStatusLabel(patient.status)}
+                    </Chip>
+                  </View>
+                </Card.Content>
+                <Card.Actions style={styles.cardActions}>
                   <View style={styles.visitInfo}>
-                    <Text style={styles.visitLabel}>Próxima cita:</Text>
+                    <Text style={styles.visitLabel}>Última visita:</Text>
                     <Text style={styles.visitDate}>
-                      {new Date(patient.nextAppointment).toLocaleDateString('es-ES')}
+                      {new Date(patient.lastVisit).toLocaleDateString('es-ES')}
                     </Text>
                   </View>
-                )}
-              </Card.Actions>
-            </Card>
-          ))}
+                  {patient.nextAppointment && (
+                    <View style={styles.visitInfo}>
+                      <Text style={styles.visitLabel}>Próxima cita:</Text>
+                      <Text style={styles.visitDate}>
+                        {new Date(patient.nextAppointment).toLocaleDateString('es-ES')}
+                      </Text>
+                    </View>
+                  )}
+                </Card.Actions>
+              </Card>
+            );
+          })}
         </ScrollView>
 
         <Menu
@@ -222,7 +243,7 @@ const PatientsScreen = () => {
           onDismiss={() => setFilterMenuVisible(false)}
           anchor={{ x: Dimensions.get('window').width - 50, y: 0 }}
         >
-          <Menu.Item 
+          <Menu.Item
             onPress={() => {
               setSelectedFilter('all');
               setFilterMenuVisible(false);
@@ -232,7 +253,7 @@ const PatientsScreen = () => {
             disabled={selectedFilter === 'all'}
           />
           <Divider />
-          <Menu.Item 
+          <Menu.Item
             onPress={() => {
               setSelectedFilter('active');
               setFilterMenuVisible(false);
@@ -241,7 +262,7 @@ const PatientsScreen = () => {
             leadingIcon="check-circle"
             disabled={selectedFilter === 'active'}
           />
-          <Menu.Item 
+          <Menu.Item
             onPress={() => {
               setSelectedFilter('inactive');
               setFilterMenuVisible(false);
@@ -265,6 +286,8 @@ const PatientsScreen = () => {
     </SafeAreaView>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -349,6 +372,10 @@ const styles = StyleSheet.create({
   patientPhone: {
     color: '#666',
     fontSize: 14,
+  },
+  patientSex: {
+    fontSize: 18,
+    marginBottom: 4,
   },
   patientStatus: {
     marginLeft: 16,

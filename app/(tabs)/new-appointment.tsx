@@ -1,24 +1,190 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Text, TextInput, Button, IconButton, Card, Title, Menu, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
+import { DatePickerModal } from 'react-native-paper-dates';
+import { usePatient, useAppointment, useTreatment, useAuthStore } from '../store/authStore';
 
 const NewAppointmentScreen = () => {
   const router = useRouter();
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
+  const [hour, setHour] = useState('');
   const [patient, setPatient] = useState('');
   const [treatment, setTreatment] = useState('');
-  const [dentist, setDentist] = useState('');
-  const [visible, setVisible] = useState(false);
+  const [user, setUser] = useState('');
+  const [treatmentList, setTreatmentList] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [userList, setUserList] = useState([]);
+  const [patientList, setPatientList] = useState([]);
+  const { getAllUsers } = useAuthStore();
+  const { getAllTreatments } = useTreatment();
+  const { getAllPatients } = usePatient();
+  const { createAppointment, isAuthenticated, isLoading, error } = useAppointment();
 
-  const openMenu = () => setVisible(true);
-  const closeMenu = () => setVisible(false);
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      try {
+        const response = await getAllTreatments();
+        const treatments = response.treatment.map((item) => ({
+          label: item.treatmentType,
+          value: item.idTreatment
+        }))
+
+        setTreatmentList(treatments);
+      } catch (error) {
+        console.error('Error fetching treatments:', error);
+      }
+    };
+
+    const fetchPatients = async () => {
+      try {
+        const response = await getAllPatients();
+        const patients = response.patient.map((item) => ({
+          label: `${item.name} ${item.lastName} ${item.surName}`,
+          value: item.idPatient
+        }))
+
+        setPatientList(patients);
+      } catch (error) {
+        console.error('Error fetching patients:', error);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const response = await getAllUsers();
+        const users = response.user.map((item) => ({
+          label: item.username,
+          value: item.idUser
+        }))
+
+        setUserList(users);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+
+    fetchTreatments();
+    fetchUsers();
+    fetchPatients();
+  }, []);
+
+  const TreatmentDropdown = ({ treatment, setTreatment, treatmentList }) => {
+    const [visible, setVisible] = useState(false);
+
+    return (
+      <View style={{ marginVertical: 10 }}>
+        <Menu
+          visible={visible}
+          onDismiss={() => setVisible(false)}
+          anchor={
+            <Button mode="outlined" onPress={() => setVisible(true)}>
+              {treatmentList.find(t => t.value === treatment)?.label || 'Selecciona tratamiento'}
+            </Button>
+          }
+        >
+          {treatmentList.map(item => (
+            <Menu.Item
+              key={item.value}
+              onPress={() => {
+                setTreatment(item.value);
+                setVisible(false);
+              }}
+              title={item.label}
+            />
+          ))}
+        </Menu>
+      </View>
+    );
+  };
+
+  const DentistaDropdown = ({ user, setUser, userList }) => {
+    const [visible, setVisible] = useState(false);
+
+    return (
+      <View style={{ marginVertical: 10 }}>
+        <Menu
+          visible={visible}
+          onDismiss={() => setVisible(false)}
+          anchor={
+            <Button mode="outlined" onPress={() => setVisible(true)}>
+              {userList.find(t => t.value === user)?.label || 'Selecciona dentista'}
+            </Button>
+          }
+        >
+          {userList.map(item => (
+            <Menu.Item
+              key={item.value}
+              onPress={() => {
+                setUser(item.value);
+                setVisible(false);
+              }}
+              title={item.label}
+            />
+          ))}
+        </Menu>
+      </View>
+    );
+  };
+
+  const PacienteDropdown = ({ patient, setPatient, patientList }) => {
+    const [visible, setVisible] = useState(false);
+
+    return (
+      <View style={{ marginVertical: 10 }}>
+        <Menu
+          visible={visible}
+          onDismiss={() => setVisible(false)}
+          anchor={
+            <Button mode="outlined" onPress={() => setVisible(true)}>
+              {patientList.find(t => t.value === patient)?.label || 'Selecciona paciente'}
+            </Button>
+          }
+        >
+          {patientList.map(item => (
+            <Menu.Item
+              key={item.value}
+              onPress={() => {
+                setPatient(item.value);
+                setVisible(false);
+              }}
+              title={item.label}
+            />
+          ))}
+        </Menu>
+      </View>
+    );
+  };
+
+  const buildISOString = () => {
+    if (!date || !hour) return '';
+    const [h, m] = hour.split(':').map(n => parseInt(n, 10));
+    const d = new Date(date);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+  };
+
+  const handleCreate = async () => {
+    const iso = buildISOString();
+    if (!iso || !patient || !treatment || !user) return;
+
+    const res = await createAppointment({
+      date: iso,
+      idPatient: patient,
+      idTreatment: treatment,
+      idUser: user
+    });
+    if (res.success) {
+      router.back();
+    } else {
+      console.error('No se pudo crear cita:', res.error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.mainContainer}
       >
@@ -28,7 +194,7 @@ const NewAppointmentScreen = () => {
           </View>
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.container}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -37,55 +203,59 @@ const NewAppointmentScreen = () => {
           <Card style={styles.card}>
             <Card.Content>
               <Title style={styles.sectionTitle}>Información de la Cita</Title>
-              
+
               <View style={styles.inputContainer}>
-                <TextInput
-                  label="Paciente"
-                  value={patient}
-                  onChangeText={setPatient}
-                  style={styles.input}
-                  right={<TextInput.Icon icon="account-search" />}
-                  mode="outlined"
+                <PacienteDropdown
+                  patient={patient}
+                  setPatient={setPatient}
+                  patientList={patientList}
                 />
 
-                <TextInput
-                  label="Fecha"
-                  value={date}
-                  onChangeText={setDate}
-                  style={styles.input}
-                  right={<TextInput.Icon icon="calendar" />}
-                  mode="outlined"
-                />
+                <View style={{ marginVertical: 10 }}>
+                  <Button
+                    mode="outlined"
+                    onPress={() => setOpen(true)}
+                    style={styles.input}
+                  >
+                    {date ? date.toISOString().split('T')[0] : 'Selecciona fecha'}
+                  </Button>
+
+                  <DatePickerModal
+                    locale="es"
+                    mode="single"
+                    visible={open}
+                    onDismiss={() => setOpen(false)}
+                    date={date ? new Date(date) : undefined}
+                    onConfirm={(params) => {
+                      setOpen(false);
+                      if (params.date) {
+                        setDate(params.date);
+                      }
+                    }}
+                  />
+                </View>
+
 
                 <TextInput
                   label="Hora"
-                  value={time}
-                  onChangeText={setTime}
+                  value={hour}
+                  onChangeText={setHour}
                   style={styles.input}
                   right={<TextInput.Icon icon="clock" />}
                   mode="outlined"
                 />
 
-                <TextInput
-                  label="Tratamiento"
-                  value={treatment}
-                  onChangeText={setTreatment}
-                  style={styles.input}
-                  right={<TextInput.Icon icon="medical-bag" />}
-                  mode="outlined"
+                <TreatmentDropdown
+                  treatment={treatment}
+                  setTreatment={setTreatment}
+                  treatmentList={treatmentList}
                 />
 
-                <Menu
-                  visible={visible}
-                  onDismiss={closeMenu}
-                  anchor={<Button onPress={openMenu} mode="outlined" style={styles.input}>Seleccionar Dentista</Button>}
-                >
-                  <Menu.Item onPress={() => setDentist('Dr. Pérez')} title="Dr. Pérez" />
-                  <Menu.Item onPress={() => setDentist('Dra. Gómez')} title="Dra. Gómez" />
-                  <Menu.Item onPress={() => setDentist('Dr. López')} title="Dr. López" />
-                  <Divider />
-                  <Menu.Item onPress={() => setDentist('')} title="Ninguno" />
-                </Menu>
+                <DentistaDropdown
+                  user={user}
+                  setUser={setUser}
+                  userList={userList}
+                />
               </View>
 
               <View style={styles.buttonContainer}>
@@ -97,13 +267,15 @@ const NewAppointmentScreen = () => {
                 >
                   Cancelar
                 </Button>
+                {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
                 <Button
                   mode="contained"
-                  onPress={() => {/* Implementar guardado */}}
+                  onPress={() => { handleCreate() }}
                   style={styles.button}
                   contentStyle={styles.buttonContent}
+                  disabled={!date || !hour.trim() || !patient || !user || !treatment || isLoading}
                 >
-                  Guardar
+                  {isLoading ? 'Cargando...' : 'Crear Cita'}
                 </Button>
               </View>
             </Card.Content>
