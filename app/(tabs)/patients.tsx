@@ -196,7 +196,7 @@ const PatientsScreen = () => {
               <Card
                 key={patient.idPatient}
                 style={styles.patientCard}
-                onPress={() => router.push(`/patient/${patient.idPatient}`)}
+                onPress={() => router.push(`(patient)/${patient.idPatient}`)}
               >
                 <Card.Content style={styles.cardContent}>
                   <View style={styles.patientInfo}>
