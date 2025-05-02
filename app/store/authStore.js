@@ -369,18 +369,24 @@ export const usePatient = create((set) => ({
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/patient/${idPatient}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ idPatient }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             });
-            const data = await response.json();
-            console.log("Response data:", data);
-            if (!response.ok) {
-                set({ error: data.message });
-                return { isLoading: false, success: false, error: data.message };
+
+            if (response.status === 204 ||
+                (response.headers.get('Content-Type') === null &&
+                    response.status >= 200 && response.status < 300)) {
+                return { success: true, isLoading: false, isAuthenticated: true, patient: null };
+            }
+            const contentLength = response.headers.get('Content-Length');
+            if (contentLength === '0' || !response.ok) {
+                return { isLoading: false, success: false, error: error.message };
             }
 
-            return { success: true, isLoading: false, isAuthenticated: true, patient: data.patient };
+            // Solo intenta parsear JSON si hay contenido
+            const data = await response.json();
+            return { success: true, isLoading: false, isAuthenticated: true, patient: null };
         } catch (error) {
             set({ isLoading: false, error: error.message });
             console.error("Error al eliminar paciente:", error);
@@ -795,17 +801,17 @@ export const useAppointment = create((set) => ({
     isAuthenticated: false,
     isCheckingAuth: true,
 
-    createAppointment: async ({date, idPatient, idTreatment, idUser}) => {
+    createAppointment: async ({ date, idPatient, idTreatment, idUser }) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ 
-                    date, 
-                    idUser, 
-                    idPatient, 
+                body: JSON.stringify({
+                    date,
+                    idUser,
+                    idPatient,
                     idTreatment,
                 }),
             });
@@ -840,7 +846,7 @@ export const useAppointment = create((set) => ({
                 return { isLoading: false, success: false, error: data.message };
             }
 
-            return { success: true, isLoading: false, isAuthenticated: true, appointment: data.appointment };
+            return { success: true, isLoading: false, isAuthenticated: true, appointments: data.appointments };
         } catch (error) {
             set({ isLoading: false, error: error.message });
             console.error("Error al obtener todas las citas:", error);
@@ -873,7 +879,34 @@ export const useAppointment = create((set) => ({
             set({ isLoading: false });
         }
     },
-    getAppointmentByPatientId: async (idPatient) => {
+    // dentro de useAppointment:
+    getNextAppointmentForPatient: async (idPatient) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch(
+                `https://truval-dental.ddns.net:8443/appointments/patient/${idPatient}/next-appointment`,
+                {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                }
+            );
+            const data = await response.json();
+            if (!response.ok) {
+                set({ error: data.message });
+                return { success: true, error: data.message };
+            }
+            // suponemos que el backend devuelve { success: true, appointment: {...} }
+            return { success: true, appointment: data.appointment };
+        } catch (err) {
+            console.error("Error al obtener próxima cita:", err);
+            set({ error: err.message });
+            return { success: false, error: err.message };
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    getAppointmentByPatientId: async (date, idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/patient/${idPatient}`, {
@@ -935,7 +968,7 @@ export const useAppointment = create((set) => ({
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || `Error ${response.status}`);
             }
@@ -992,7 +1025,6 @@ export const useAppointment = create((set) => ({
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
             });
             const data = await response.json();
             if (!response.ok) {
@@ -1016,7 +1048,7 @@ export const useAppointment = create((set) => ({
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ appointmentDate, appointmentHour, idUser, idPatient, idTreatment }),
+                body: JSON.stringify({ date, idUser, idPatient, idTreatment }),
             });
             const data = await response.json();
             if (!response.ok) {
@@ -1038,21 +1070,54 @@ export const useAppointment = create((set) => ({
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/${idAppointment}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 credentials: 'include',
             });
-            const data = await response.json();
-            console.log("Response data:", data);
-            if (!response.ok) {
-                set({ error: data.message });
-                return { isLoading: false, success: false, error: data.message };
+    
+            // 1. Verificación explícita para 204
+            if (response.status === 204) {
+                return { 
+                    success: true, 
+                    isLoading: false,
+                    error: null
+                };
             }
-
-            return { success: true, isLoading: false, isAuthenticated: true, appointment: data.appointment };
+    
+            // 2. Solo intentar leer respuesta si no es 204
+            if (!response.ok) {
+                // Manejo de errores con verificación de contenido
+                const text = await response.text();
+                let errorMessage = 'Error al eliminar cita';
+                
+                try {
+                    const errorData = text ? JSON.parse(text) : {};
+                    errorMessage = errorData.message || errorMessage;
+                } catch {
+                    // Si no es JSON válido, usa el texto plano o mensaje por defecto
+                    errorMessage = text || errorMessage;
+                }
+                
+                return {
+                    success: false,
+                    isLoading: false,
+                    error: errorMessage
+                };
+            }
+    
+            // 3. Para otros códigos de éxito (no 204)
+            return {
+                success: true,
+                isLoading: false,
+                error: null
+            };
+    
         } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar cita:", error);
-            return { isLoading: false, success: false, error: error.message };
+            console.error("Error en deleteAppointment:", error);
+            return {
+                isLoading: false,
+                success: false,
+                error: error.message || 'Error de conexión'
+            };
         } finally {
             set({ isLoading: false });
         }

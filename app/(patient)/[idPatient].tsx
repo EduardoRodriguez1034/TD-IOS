@@ -1,22 +1,21 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Platform, SafeAreaView } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button } from 'react-native-paper';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { COLORS } from '../constants/theme';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { usePatient, useClinicalRecord, useTreatment, useInformedConsent, useAppointment } from '../store/authStore';
 
 export const options = {
     tabBarButton: () => null,
-  };
+};
 
 const PatientDetailsScreen = () => {
     const router = useRouter();
     const { idPatient } = useLocalSearchParams();
     const [patient, setPatient] = useState(null);
     const [clinical, setClinicalRecord] = useState(null);
-    const [appointment, setAppointment] = useState(null);
     const [isLoadingTreatments, setIsLoadingTreatments] = useState(false);
     const [treatmentNames, setTreatmentNames] = useState([]);
     const [file, setFile] = useState<SelectedFile | null>(null);
@@ -24,7 +23,22 @@ const PatientDetailsScreen = () => {
     const { getClinicalRecordByPatientId } = useClinicalRecord();
     const { getATreatment } = useTreatment();
     const { addInformedConsent, getInformedConsent } = useInformedConsent();
-    const { getAppointmentByPatientId } = useAppointment();
+
+    const { getNextAppointmentForPatient } = useAppointment();
+    const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
+
+    const formattedDate = useMemo(() => {
+        const today = new Date();
+        const d = today.toLocaleDateString('es-ES', {
+            weekday: 'long', day: 'numeric', month: 'long'
+        });
+        return d.charAt(0).toUpperCase() + d.slice(1);
+    }, []);
+
+    const [loading, setLoading] = useState(true);
+    const [appointments, setAppointments] = useState<any[]>([]);
+    const [nextTreatment, setNextTreatment] = useState<string | null>(null);
+
 
     type FileData = {
         uri: string;
@@ -37,46 +51,84 @@ const PatientDetailsScreen = () => {
         type: string;
     };
 
-    useEffect(() => {
-        const fetchPatient = async () => {
-            if (idPatient) {
-                const response = await getAPatient(idPatient);
-                if (response.success) {
-                    setPatient(response.patient);
-                } else {
-                    console.error('Error fetching patient:', response.error);
+    const nextAppointment = useMemo(() => {
+        if (!appointments?.length) return null;
+
+        const now = new Date();
+        // parseamos y filtramos
+        const futuros = appointments
+            .map(a => ({ ...a, _d: new Date(a.date) }))
+            .filter(a => a._d >= now);
+
+        if (!futuros.length) return null;
+
+        // ordenamos ascendente por date
+        futuros.sort((a, b) => a._d.getTime() - b._d.getTime());
+
+        return futuros[0]._d;  // Date del siguiente turno
+    }, [appointments]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!idPatient) return;
+            let isActive = true;
+            const fetchToday = async () => {
+                setLoading(true);
+                try {
+                    const res = await getNextAppointmentForPatient(idPatient);
+                    if (isActive) {
+                        if (res.success) {
+                            const appt = res.appointment;
+                            setAppointments(res.appointment ? [res.appointment] : []);
+
+                            const treatmentRes = await getATreatment(appt.idTreatment);
+                            if (treatmentRes.success && treatmentRes.treatment) {
+                                setNextTreatment(treatmentRes.treatment.treatmentType);
+                            }
+                        } else {
+                            console.error('Error al traer citas:', res.error);
+                            setAppointments([]);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error inesperado:', e);
+                } finally {
+                    if (isActive) setLoading(false);
+                }
+            };
+            fetchToday();
+            // cleanup
+            return () => { isActive = false; };
+        }, [getNextAppointmentForPatient, todayStr, idPatient])
+    ),
+
+        useEffect(() => {
+            const fetchPatient = async () => {
+                if (idPatient) {
+                    const response = await getAPatient(idPatient);
+                    if (response.success) {
+                        setPatient(response.patient);
+                    } else {
+                        console.error('Error fetching patient:', response.error);
+                    }
+                }
+            };
+
+            const fetchCliinicalRecord = async () => {
+                if (idPatient) {
+                    const response = await getClinicalRecordByPatientId(idPatient);
+                    if (response.success) {
+                        setClinicalRecord(response.clinical);
+                    } else {
+                        console.error('Error fetching clinical record:', response.error);
+                    }
                 }
             }
-        };
 
-        const fetchCliinicalRecord = async () => {
-            if (idPatient) {
-                const response = await getClinicalRecordByPatientId(idPatient);
-                if (response.success) {
-                    setClinicalRecord(response.clinical);
-                } else {
-                    console.error('Error fetching clinical record:', response.error);
-                }
-            }
-        }
+            fetchPatient();
+            fetchCliinicalRecord();
 
-        const fetchAppointment = async () => {
-            if (idPatient) {
-                const response = await getAppointmentByPatientId(idPatient);
-                if (response.success) {
-                    setAppointment(response.appointment);
-                }
-                else {
-                    console.error('Error fetching appointment:', response.error);
-                }
-            }
-        }
-
-        fetchPatient();
-        fetchCliinicalRecord();
-        fetchAppointment();
-
-    }, [idPatient]);
+        }, [idPatient]);
 
     useEffect(() => {
         const fetchTreatmentNames = async () => {
@@ -163,19 +215,6 @@ const PatientDetailsScreen = () => {
             alert('Error al seleccionar el archivo');
         }
     };
-
-    const getNextAppointmentDate = () => {
-        if (appointment && appointment.date) {
-            return new Date(appointment.date).toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-        return null;
-    }
-
     const submit = async () => {
         if (!file || !idPatient) return;
 
@@ -279,32 +318,37 @@ const PatientDetailsScreen = () => {
 
                             <View style={styles.infoSection}>
                                 <Title style={styles.sectionTitle}>Próxima Cita</Title>
-                                {patient.nextAppointment ? (
+                                {loading ? (
+                                    <ActivityIndicator />
+                                ) : nextAppointment ? (
                                     <Card style={styles.appointmentCard}>
                                         <Card.Content>
-                                            <View style={styles.appointmentHeader}>
-                                                <Text style={styles.appointmentDate}>
-                                                    {getNextAppointmentDate()}
+                                            <Text>
+                                                {nextAppointment.toLocaleDateString('es-ES', {
+                                                    weekday: 'long',
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })} —{' '}
+                                                {nextAppointment.toLocaleTimeString('es-ES', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </Text>
+                                            {nextTreatment && (
+                                            <View style={{ marginTop: 8 }}>
+                                                <Title style={styles.treatmentType}>Tratamiento</Title>
+                                                <Text style={{ fontSize: 14, color: '#333' }}>
+                                                    {nextTreatment}
                                                 </Text>
-                                                <View style={styles.appointmentActions}>
-                                                    <IconButton
-                                                        icon="pencil"
-                                                        size={20}
-                                                        onPress={() => {/* Implementar edición de cita */ }}
-                                                        style={styles.actionIcon}
-                                                    />
-                                                    <IconButton
-                                                        icon="delete"
-                                                        size={20}
-                                                        onPress={() => {/* Implementar eliminación de cita */ }}
-                                                        style={styles.actionIcon}
-                                                    />
-                                                </View>
                                             </View>
+                                            )}
                                         </Card.Content>
                                     </Card>
                                 ) : (
-                                    <Text style={styles.noAppointmentText}>No hay citas programadas</Text>
+                                    <Text style={styles.noAppointmentText}>
+                                        No hay citas futuras programadas
+                                    </Text>
                                 )}
                             </View>
 
@@ -565,7 +609,24 @@ const styles = StyleSheet.create({
     submitButton: {
         marginTop: 10,
         backgroundColor: COLORS.primary
-    }
+    },
+    dateText: {
+        color: '#666',
+        fontSize: 14,
+    },
+
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    cardTitle: {
+        fontSize: 20,
+        color: COLORS.primary,
+        marginBottom: 8,
+        fontWeight: '600',
+    },
 });
 
 export default PatientDetailsScreen; 

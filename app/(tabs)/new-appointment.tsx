@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { usePatient, useAppointment, useTreatment, useAuthStore } from '../store/authStore';
+import { SuccessModal } from '../components/SuccessModal';
 
 const NewAppointmentScreen = () => {
   const router = useRouter();
@@ -21,6 +22,7 @@ const NewAppointmentScreen = () => {
   const { getAllTreatments } = useTreatment();
   const { getAllPatients } = usePatient();
   const { createAppointment, isAuthenticated, isLoading, error } = useAppointment();
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchTreatments = async () => {
@@ -69,6 +71,14 @@ const NewAppointmentScreen = () => {
     fetchUsers();
     fetchPatients();
   }, []);
+
+  const resetForm = () => {
+    setDate(null);
+    setHour('');
+    setPatient('');
+    setTreatment('');
+    setUser('');
+  };
 
   const TreatmentDropdown = ({ treatment, setTreatment, treatmentList }) => {
     const [visible, setVisible] = useState(false);
@@ -176,7 +186,12 @@ const NewAppointmentScreen = () => {
       idUser: user
     });
     if (res.success) {
-      router.back();
+      resetForm();
+      setSuccessModalVisible(true);
+      setTimeout(() => {
+        setSuccessModalVisible(false);
+        router.back();
+      }, 2000);
     } else {
       console.error('No se pudo crear cita:', res.error);
     }
@@ -209,6 +224,7 @@ const NewAppointmentScreen = () => {
                   patient={patient}
                   setPatient={setPatient}
                   patientList={patientList}
+
                 />
 
                 <View style={{ marginVertical: 10 }}>
@@ -267,7 +283,6 @@ const NewAppointmentScreen = () => {
                 >
                   Cancelar
                 </Button>
-                {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
                 <Button
                   mode="contained"
                   onPress={() => { handleCreate() }}
@@ -282,6 +297,16 @@ const NewAppointmentScreen = () => {
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>
+      <SuccessModal
+        visible={successModalVisible}
+        title="Cita creada exitosamente"
+        message="La cita ha sido registrada en el sistema."
+        buttonText="Volver al listado"
+        onDismiss={() => {
+          setSuccessModalVisible(false);
+          router.back(); // Opcional: Navegar atrás al cerrar
+        }}
+      />
     </SafeAreaView>
   );
 };

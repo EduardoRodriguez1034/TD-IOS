@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { Card, Title, Paragraph, Button, IconButton, Avatar } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';

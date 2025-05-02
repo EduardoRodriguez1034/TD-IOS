@@ -7,6 +7,7 @@ export const COLORS = {
   black: '#000000',
   gray: '#7F8C8D',
   lightGray: '#ECF0F1',
+  green: ' #76dc9e',
   error: '#E74C3C',
   success: '#2ECC71',
   warning: '#F1C40F',
