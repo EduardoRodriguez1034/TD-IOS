@@ -35,6 +35,10 @@ npm install expo-document-picker
 ```bash
 npm install -g expo-cli
 ```
+3. Instala React Calendars para utilizar los calendarios:
+```bash
+npm install react-native-calendars
+```
 
 ## Ejecución del Proyecto
 
