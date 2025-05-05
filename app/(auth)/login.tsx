@@ -6,12 +6,13 @@ import { COLORS } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 
 const LoginScreen = () => {
+  const router = useRouter();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
-  const router = useRouter();
+
   const { login } = useAuthStore();
-  const { token } = useLocalSearchParams();
 
   const handleLogin = async (e) => {
     e.preventDefault();

@@ -8,6 +8,8 @@ import { COLORS } from '../constants/theme';
 import { useAppointment, usePatient, useTreatment } from '../store/authStore'
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Alert } from 'react-native'
+import { EditAppointmentModal } from '../components/EditAppointmentModal'
+import { SuccessModal } from '../components/SuccessModal'
 
 interface RawAppointment {
   idAppointment: number
@@ -48,15 +50,29 @@ function dateToYMDLocal(iso: string) {
 }
 
 export default function ScheduleScreen() {
-  const { getAllAppointments, completeAppointment, deleteAppointment, isLoading: loadingApts } = useAppointment()
-  const { getAllPatients } = usePatient()
-  const { getAllTreatments } = useTreatment()
-
   const [items, setItems] = useState<Record<string, AgendaItem[]>>({})
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<number | null>(null);
+  const [ready, setReady] = useState(false)
+
+  const [editModalVisible, setEditModalVisible] = useState(false);  
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [currentAppointment, setCurrentAppointment] = useState<AgendaItem | null>(null);
+  const [treatmentOptions, setTreatmentOptions] = useState<Array<{ label: string, value: number }>>([]);
+
+  const { getAllAppointments, completeAppointment, updateAppointment, deleteAppointment, isLoading: loadingApts } = useAppointment()
+  const { getAllPatients } = usePatient()
+  const { getAllTreatments } = useTreatment()
+
+  const now = new Date()
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+
 
   const loadAppointments = useCallback(async () => {
     try {
@@ -117,9 +133,39 @@ export default function ScheduleScreen() {
     }
   }, [getAllAppointments, getAllPatients, getAllTreatments])
 
-  const handleDeletePress = (idAppointment: number) => {
-    setSelectedAppointment(idAppointment);
-    setModalVisible(true);
+  const handleSaveAppointment = async ({ date, idTreatment }: { date: string; idTreatment: number }) => {
+    if (!currentAppointment) return;
+
+    try {
+      // Actualización optimista
+      setItems(prevItems => {
+        const updatedItems = { ...prevItems };
+        Object.keys(updatedItems).forEach(day => {
+          updatedItems[day] = updatedItems[day].map(apt =>
+            apt.idAppointment === currentAppointment.idAppointment
+              ? {
+                ...apt,
+                dateISO: date,
+                treatmentType: treatmentOptions.find(t => t.value === idTreatment)?.label || apt.treatmentType,
+                time: new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              } : apt
+          );
+        });
+        return updatedItems;
+      });
+
+      // Aquí debes implementar la llamada a tu API para actualizar la cita
+      await updateAppointment(currentAppointment.idAppointment, { date, idTreatment });
+      
+      setEditModalVisible(false);
+      
+      setSuccessModalVisible(true);
+      setTimeout(() => {
+        setSuccessModalVisible(false);
+      }, 2000);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo actualizar la cita');
+    }
   };
 
   const onDeleteConfirm = async () => {
@@ -140,30 +186,44 @@ export default function ScheduleScreen() {
       const { success, error } = await deleteAppointment(selectedAppointment);
 
       if (!success) {
-        loadAppointments(); // Revertir si hay error
         Alert.alert('Error', error || 'No se pudo eliminar');
       }
       // No necesitas else, la UI ya se actualizó optimistamente
 
     } catch (error) {
       console.error('Error inesperado:', error);
-      loadAppointments();
       Alert.alert('Error', 'Error inesperado al eliminar');
     } finally {
       setModalVisible(false);
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadAppointments()
-      return () => setError(null)
-    }, [loadAppointments])
-  )
+  const handleDeletePress = (idAppointment: number) => {
+    setSelectedAppointment(idAppointment);
+    setModalVisible(true);
+  };
+
+  const fetchTreatments = useCallback(async () => {
+    try {
+      const res = await getAllTreatments();
+      if (res.success) {
+        setTreatmentOptions(
+          res.treatment.map(t => ({ label: t.treatmentType, value: t.idTreatment })))
+      }
+    } catch (error) {
+      console.error('Error al obtener las citas', error)
+    }
+  }, [])
+
 
   useEffect(() => {
-    loadAppointments()
-  }, [loadAppointments])
+    loadAppointments().then(() => setReady(true))
+  }, [])
+
+  useEffect(() => {
+    fetchTreatments();
+  }, []);
+
 
   // Agenda pide esto para poblar días vacíos
   const loadItemsForMonth = ({ dateString }: { dateString: string }) => {
@@ -171,6 +231,11 @@ export default function ScheduleScreen() {
       setItems(prev => ({ ...prev, [dateString]: [] }))
     }
   }
+
+  const handleEditPress = (appointment: AgendaItem) => {
+    setCurrentAppointment(appointment);
+    setEditModalVisible(true);
+  };
 
   const renderItem = (item: AgendaItem) => {
     const onComplete = async () => {
@@ -190,15 +255,12 @@ export default function ScheduleScreen() {
 
         const res = await completeAppointment(item.idAppointment);
         if (!res.success) {
-          // Si falla, vuelve a cargar
-          loadAppointments();
           Alert.alert('Error', res.error || 'No se pudo completar la cita');
         } else {
           Alert.alert('¡Éxito!', 'La cita ha sido marcada como completada');
         }
       } catch (error) {
         console.error('Error al completar cita:', error);
-        loadAppointments();
         Alert.alert('Error', 'Ocurrió un problema al procesar la solicitud');
       }
     };
@@ -224,6 +286,16 @@ export default function ScheduleScreen() {
           <View style={styles.rightColumn}>
             <Text style={{ fontWeight: 'bold' }}>{item.time}</Text>
             <View style={styles.actionButtons}>
+              {!item.isCompleted && (
+                <Button
+                  mode="contained"
+                  onPress={() => handleEditPress(item)}
+                  style={styles.actionButton}
+                  contentStyle={styles.buttonContent}
+                >
+                  Editar
+                </Button>
+              )}
               {item.isCompleted && (
                 <Button
                   mode="contained"
@@ -232,16 +304,6 @@ export default function ScheduleScreen() {
                   textColor='black'
                   contentStyle={styles.buttonContent}
                   disabled={true}
-                >
-                  Editar
-                </Button>
-              )}
-              {!item.isCompleted && (
-                <Button
-                  mode="contained"
-                  onPress={() => {/* Implementar edición */ }}
-                  style={styles.actionButton}
-                  contentStyle={styles.buttonContent}
                 >
                   Editar
                 </Button>
@@ -304,18 +366,9 @@ export default function ScheduleScreen() {
 
   if (loadingApts) return <ActivityIndicator style={{ flex: 1 }} />
   if (error) return <Text style={{ flex: 1, textAlign: 'center', color: 'red', marginTop: 20 }}>{error}</Text>
-
-  const now = new Date()
-  const today = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('-')
-
   return (
     <View style={{ flex: 1 }}>
       <Agenda
-        key={Object.keys(items).length}
         items={items}
         loadItemsForMonth={loadItemsForMonth}
         selected={today}
@@ -328,6 +381,27 @@ export default function ScheduleScreen() {
         message="¿Estás seguro de que deseas eliminar esta cita?"
         onConfirm={onDeleteConfirm}
         onCancel={() => setModalVisible(false)}
+      />
+      <EditAppointmentModal
+        visible={editModalVisible}
+        appointment={currentAppointment || {
+          idAppointment: 0,
+          dateISO: new Date().toISOString(),
+          treatmentType: '',
+          patientName: ''
+        }}
+        treatments={treatmentOptions}
+        onSave={handleSaveAppointment}
+        onCancel={() => setEditModalVisible(false)}
+      />
+      <SuccessModal
+        visible={successModalVisible}
+        title="Cita actualizada exitosamente"
+        message="La cita ha sido actualizada en el sistema."
+        buttonText="Volver al listado"
+        onDismiss={() => {
+          setSuccessModalVisible(false);
+        }}
       />
     </View>
 

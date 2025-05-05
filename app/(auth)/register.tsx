@@ -7,10 +7,12 @@ import { useAuthStore } from '../store/authStore';
 
 
 const RegisterScreen = () => {
+  const router = useRouter();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
-  const router = useRouter();
+
   const { signup, isLoading, error } = useAuthStore();
 
   const handleRegister = async (e) => {

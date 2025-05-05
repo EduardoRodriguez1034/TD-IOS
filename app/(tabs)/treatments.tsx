@@ -6,28 +6,34 @@ import { useTreatment } from '../store/authStore';
 import { useRouter } from 'expo-router';
 import { SuccessModal } from '../components/SuccessModal';
 
-const router = useRouter();
-
 const CreateTreatment = () => {
-    const [name, setName] = useState('');
+    const router = useRouter();
+    const [treatmentType, setTreatmentType] = useState('');
     const [price, setPrice] = useState('');
     const [description, setDescription] = useState('');
-    const { addTreatment } = useTreatment();
     const [successModalVisible, setSuccessModalVisible] = useState(false);
 
+    const { createTreatment } = useTreatment();
+
+    const resetForm = () => {
+        setTreatmentType('');
+        setPrice('');
+        setDescription('');
+      };
+
     const handleSubmit = async () => {
-        if (!name || !price) {
+        if (!treatmentType || !price) {
             Alert.alert('Error', 'El nombre y el precio son obligatorios.');
             return;
         }
-
         try {
-            const response = await addTreatment({ name, price, description });
+            const response = await createTreatment(treatmentType, price, description);
             if (response.success) {
+                resetForm();
                 setSuccessModalVisible(true);
                 setTimeout(() => {
                     setSuccessModalVisible(false);
-                    router.back();
+                    router.replace('/(tabs)');
                 }, 2000);
             } else {
                 Alert.alert('Error', response.message || 'No se pudo crear el tratamiento.');
@@ -63,8 +69,8 @@ const CreateTreatment = () => {
                             <View style={styles.inputContainer}>
                                 <TextInput
                                     label="Nombre del Tratamiento"
-                                    value={name}
-                                    onChangeText={setName}
+                                    value={treatmentType}
+                                    onChangeText={setTreatmentType}
                                     style={styles.input}
                                     mode="outlined"
                                 />
@@ -116,7 +122,7 @@ const CreateTreatment = () => {
                 buttonText="Volver al listado"
                 onDismiss={() => {
                     setSuccessModalVisible(false);
-                    router.back();
+                    router.replace('/(tabs)');
                 }}
             />
         </SafeAreaView>

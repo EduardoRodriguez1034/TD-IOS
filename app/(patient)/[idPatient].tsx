@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator, Linking, Alert } from 'react-native';
 import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button } from 'react-native-paper';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { usePatient, useClinicalRecord, useTreatment, useInformedConsent, useAppointment } from '../store/authStore';
+import { EditPatientModal } from '../components/EditPatientModal'
 
 export const options = {
     tabBarButton: () => null,
@@ -19,26 +20,17 @@ const PatientDetailsScreen = () => {
     const [isLoadingTreatments, setIsLoadingTreatments] = useState(false);
     const [treatmentNames, setTreatmentNames] = useState([]);
     const [file, setFile] = useState<SelectedFile | null>(null);
-    const { getAPatient, isLoading, isAuthenticated, error } = usePatient();
-    const { getClinicalRecordByPatientId } = useClinicalRecord();
-    const { getATreatment } = useTreatment();
-    const { addInformedConsent, getInformedConsent } = useInformedConsent();
-
-    const { getNextAppointmentForPatient } = useAppointment();
-    const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
-
-    const formattedDate = useMemo(() => {
-        const today = new Date();
-        const d = today.toLocaleDateString('es-ES', {
-            weekday: 'long', day: 'numeric', month: 'long'
-        });
-        return d.charAt(0).toUpperCase() + d.slice(1);
-    }, []);
-
     const [loading, setLoading] = useState(true);
     const [appointments, setAppointments] = useState<any[]>([]);
     const [nextTreatment, setNextTreatment] = useState<string | null>(null);
+    const [informedConsent, setInformedConsent] = useState<InformedConsent | null>(null);
+    const [editModalVisible, setEditModalVisible] = useState(false);
 
+    const { getAPatient, updatePatient, isLoading, isAuthenticated, error } = usePatient();
+    const { getClinicalRecordByPatientId } = useClinicalRecord();
+    const { getATreatment } = useTreatment();
+    const { addInformedConsent, getInformedConsent } = useInformedConsent();
+    const { getNextAppointmentForPatient } = useAppointment();
 
     type FileData = {
         uri: string;
@@ -50,7 +42,9 @@ const PatientDetailsScreen = () => {
         name: string;
         type: string;
     };
+    type InformedConsent = { filename: string; url: string };
 
+    const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
     const nextAppointment = useMemo(() => {
         if (!appointments?.length) return null;
 
@@ -58,102 +52,93 @@ const PatientDetailsScreen = () => {
         // parseamos y filtramos
         const futuros = appointments
             .map(a => ({ ...a, _d: new Date(a.date) }))
-            .filter(a => a._d >= now);
+            .filter(a => a._d >= now)
+            .sort((a, b) => a._d.getTime() - b._d.getTime());
 
-        if (!futuros.length) return null;
-
-        // ordenamos ascendente por date
-        futuros.sort((a, b) => a._d.getTime() - b._d.getTime());
-
-        return futuros[0]._d;  // Date del siguiente turno
+        return futuros[0]?._d ?? null;  // Date del siguiente turno
     }, [appointments]);
+
+    const fetchPatient = useCallback(async () => {
+        if (!idPatient) return;
+        const response = await getAPatient(idPatient);
+        if (response.success) {
+            setPatient(response.patient);
+        } else {
+            console.error('Error fetching patient:', response.error);
+        }
+    }, [idPatient, getAPatient]);
+
+    const fetchNextAppointment = useCallback(async () => {
+        if (!idPatient) return;
+        setLoading(true);
+
+        try {
+            const response = await getNextAppointmentForPatient(idPatient)
+            if (response.success) {
+                setAppointments(response.appointment ? [response.appointment] : []);
+                const treatmentRes = await getATreatment(response.appointment.idTreatment);
+                if (treatmentRes.success && treatmentRes.treatment) {
+                    setNextTreatment(treatmentRes.treatment.treatmentType);
+                }
+            }
+        } catch (error) {
+            setAppointments([]);
+        } finally {
+            setLoading(false)
+        }
+    }, [getNextAppointmentForPatient, todayStr, idPatient])
+
+    const fetchClinicalRecord = useCallback(async () => {
+        if (!idPatient) return;
+        const response = await getClinicalRecordByPatientId(idPatient);
+        if (response.success) {
+            setClinicalRecord(response.clinical);
+        } else {
+            console.error('Error fetching clinical record:', response.error);
+        }
+    }, [idPatient, getClinicalRecordByPatientId]);
+
+    const fetchTreatmentsNames = useCallback(async () => {
+        if (clinical?.treatmentsDone && clinical.treatmentsDone.length > 0) {
+            setIsLoadingTreatments(true);
+            try {
+                const names = await Promise.all(clinical.treatmentsDone.map(async (idTreatment) => {
+                    const response = await getATreatment(idTreatment);
+                    return response.success ? response.treatment.treatmentType : null;
+                }));
+                setTreatmentNames(names.filter(Boolean)); // Filtramos los nulls
+            } catch (error) {
+                console.error('Error fetching treatment names:', error);
+            } finally {
+                setIsLoadingTreatments(false);
+            }
+        }
+    }, [clinical, getATreatment]);
+
+    const fetchConsent = useCallback(async () => {
+        try {
+            if (!idPatient) return;
+            const response = await getInformedConsent(idPatient);
+            console.log('🖨 Consent response:', response);
+            if (response.success && response.consent) {
+                // renombramos search → filename/url
+                setInformedConsent(response.consent);
+            }
+        } catch (error) {
+            console.error('Error obteniendo archivo de consentimiento informado', error)
+        }
+    }, [idPatient, getInformedConsent])
+
+    useEffect(() => { fetchPatient(); }, [fetchPatient]);
+    useEffect(() => { fetchClinicalRecord(); }, [fetchClinicalRecord]);
+    useEffect(() => { fetchTreatmentsNames(); }, [fetchTreatmentsNames]);
+    useEffect(() => { fetchConsent(); }, [fetchConsent]);
 
     useFocusEffect(
         useCallback(() => {
-            if (!idPatient) return;
-            let isActive = true;
-            const fetchToday = async () => {
-                setLoading(true);
-                try {
-                    const res = await getNextAppointmentForPatient(idPatient);
-                    if (isActive) {
-                        if (res.success) {
-                            const appt = res.appointment;
-                            setAppointments(res.appointment ? [res.appointment] : []);
-
-                            const treatmentRes = await getATreatment(appt.idTreatment);
-                            if (treatmentRes.success && treatmentRes.treatment) {
-                                setNextTreatment(treatmentRes.treatment.treatmentType);
-                            }
-                        } else {
-                            console.error('Error al traer citas:', res.error);
-                            setAppointments([]);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error inesperado:', e);
-                } finally {
-                    if (isActive) setLoading(false);
-                }
-            };
-            fetchToday();
-            // cleanup
-            return () => { isActive = false; };
-        }, [getNextAppointmentForPatient, todayStr, idPatient])
-    ),
-
-        useEffect(() => {
-            const fetchPatient = async () => {
-                if (idPatient) {
-                    const response = await getAPatient(idPatient);
-                    if (response.success) {
-                        setPatient(response.patient);
-                    } else {
-                        console.error('Error fetching patient:', response.error);
-                    }
-                }
-            };
-
-            const fetchCliinicalRecord = async () => {
-                if (idPatient) {
-                    const response = await getClinicalRecordByPatientId(idPatient);
-                    if (response.success) {
-                        setClinicalRecord(response.clinical);
-                    } else {
-                        console.error('Error fetching clinical record:', response.error);
-                    }
-                }
-            }
-
-            fetchPatient();
-            fetchCliinicalRecord();
-
-        }, [idPatient]);
-
-    useEffect(() => {
-        const fetchTreatmentNames = async () => {
-            if (clinical?.treatmentsDone && clinical.treatmentsDone !== "") {
-                setIsLoadingTreatments(true);
-                try {
-                    const names = [];
-                    for (const idTreatment of clinical.treatmentsDone) {
-                        const response = await getATreatment(idTreatment);
-                        if (response.success && response.treatment) {
-                            names.push(response.treatment.treatmentType);
-                        }
-                    }
-                    setTreatmentNames(names);
-                } catch (error) {
-                    console.error('Error fetching treatment names:', error);
-                } finally {
-                    setIsLoadingTreatments(false);
-                }
-            }
-        };
-        if (clinical) {
-            fetchTreatmentNames();
-        }
-    }, [clinical]);
+            fetchNextAppointment();
+        }, [fetchNextAppointment])
+    )
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -196,10 +181,12 @@ const PatientDetailsScreen = () => {
         return age;
     };
 
-    const pickDocument = async () => {
+
+    const handleSelectFile = async () => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
-                type: 'application/pdf', // o el tipo que necesites
+                type: '*/*',
+                copyToCacheDirectory: Platform.OS !== 'web', // Solo copiar en móvil
             });
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -210,36 +197,64 @@ const PatientDetailsScreen = () => {
                     type: selectedFile.mimeType
                 });
             }
-        } catch (err) {
-            console.error('Error al seleccionar archivo:', err);
+        } catch (error) {
+            console.error('Error al seleccionar archivo:', error);
             alert('Error al seleccionar el archivo');
         }
     };
-    const submit = async () => {
+
+    const handleUploadFile = async () => {
         if (!file || !idPatient) return;
 
-        const formData = new FormData();
-
-        // Aquí está la corrección clave
-        const fileToUpload = {
-            uri: file.uri,
-            name: file.name,
-            type: file.type
-        };
-
-        formData.append('file', fileToUpload as unknown as Blob); // Esta es la conversión de tipos necesaria
-
         try {
-            const result = await addInformedConsent(formData, idPatient.toString());
-            if (result?.success) {
-                alert('Consentimiento subido con éxito');
-                router.replace(`/patient/${idPatient}`);
+            const formData = new FormData();
+
+            if (Platform.OS === 'web') {
+                const blob = await fetch(file.uri).then(r => r.blob());
+                formData.append('file', blob, file.name);
             } else {
-                alert(result?.message || 'Error al subir el consentimiento');
+                formData.append('file', {
+                    uri: file.uri,
+                    name: file.name,
+                    type: file.type,
+                } as any);
+            }
+
+            const response = await fetch(
+                `https://truval-dental.ddns.net:8443/informed-consent/${idPatient}`,
+                {
+                    method: 'POST',
+                    body: formData,
+                }
+            );
+
+            const data = await response.json();
+            if (response.ok) {
+                alert('Consentimiento subido exitosamente');
+                fetchConsent();
+            } else {
+                throw new Error(data.message || 'Error al subir el archivo');
             }
         } catch (error) {
-            console.error('Error al subir el archivo:', error);
-            alert('Error al procesar el archivo');
+            console.error('Error al subir archivo:', error);
+            alert(error.message || 'Error al subir el archivo');
+        }
+    };
+    const handleEditPress = () => {
+        setEditModalVisible(true);
+    };
+
+    const handleSavePatient = async ({ name, lastName, surName, sex, phone, birthDate }: { name: string; lastName: string; surName: string; sex: string; phone: string; birthDate: string; }) => {
+        if (!idPatient) return;
+
+        try {
+            await updatePatient(idPatient, { name, lastName, surName, sex, phone, birthDate });
+
+            Alert.alert('Éxito', 'Información de paciente actualizada correctamente');
+            setEditModalVisible(false);
+            fetchPatient();
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo actualizar la información del paciente');
         }
     };
 
@@ -254,6 +269,23 @@ const PatientDetailsScreen = () => {
     }
     return (
         <SafeAreaView style={styles.safeArea}>
+            <Stack.Screen
+                options={{
+                    title: 'Información del paciente',
+                    headerLeft: () => (
+                        <Button
+                            onPress={() => router.push('/patients')}
+                            style={styles.backButton}
+                        >
+                            Volver
+                        </Button>
+                    ),
+                    headerStyle: {
+                        backgroundColor: COLORS.white,
+                    },
+                    headerShadowVisible: false,
+                }}
+            />
             <View style={styles.mainContainer}>
                 <View style={styles.header}>
                     <View style={styles.titleContainer}>
@@ -262,7 +294,7 @@ const PatientDetailsScreen = () => {
                     <IconButton
                         icon="pencil"
                         size={24}
-                        onPress={() => {/* Implementar edición */ }}
+                        onPress={() => handleEditPress()}
                         style={styles.editIcon}
                     />
                 </View>
@@ -336,12 +368,12 @@ const PatientDetailsScreen = () => {
                                                 })}
                                             </Text>
                                             {nextTreatment && (
-                                            <View style={{ marginTop: 8 }}>
-                                                <Title style={styles.treatmentType}>Tratamiento</Title>
-                                                <Text style={{ fontSize: 14, color: '#333' }}>
-                                                    {nextTreatment}
-                                                </Text>
-                                            </View>
+                                                <View style={{ marginTop: 8 }}>
+                                                    <Title style={styles.treatmentType}>Tratamiento</Title>
+                                                    <Text style={{ fontSize: 14, color: '#333' }}>
+                                                        {nextTreatment}
+                                                    </Text>
+                                                </View>
                                             )}
                                         </Card.Content>
                                     </Card>
@@ -367,7 +399,6 @@ const PatientDetailsScreen = () => {
                                                     <Text style={styles.treatmentType}>
                                                         {treatmentNames[index] || 'Tratamiento'}
                                                     </Text>
-                                                    {/* Aquí podrías usar una fecha real si tienes, por ahora usamos la fecha actual */}
                                                     <Text style={styles.treatmentDate}>
                                                         {new Date().toLocaleDateString('es-ES')}
                                                     </Text>
@@ -383,30 +414,50 @@ const PatientDetailsScreen = () => {
                                     <Text>No hay tratamientos registrados</Text>
                                 )}
                             </View>
-                            <View style={styles.uploadSection}>
-                                <Button
-                                    mode="contained"
-                                    onPress={pickDocument}
-                                    icon="file-upload"
-                                >
-                                    Seleccionar Consentimiento
-                                </Button>
+                            <View style={styles.infoSection}>
+                                <Title style={styles.sectionTitle}>Consentimiento Informado</Title>
+                                {informedConsent ? (
+                                    <Card style={styles.consentCard}>
+                                        <Card.Content>
+                                            <Text style={styles.consentText}>
+                                                {informedConsent.filename}
+                                            </Text>
+                                            <Button
+                                                mode="outlined"
+                                                onPress={() => Linking.openURL(informedConsent.url)}
+                                                icon="file-download"
+                                            >
+                                                Ver Documento de consentimiento informado
+                                            </Button>
+                                        </Card.Content>
+                                    </Card>
+                                ) : (
+                                    <>
+                                        <Button
+                                            mode="contained"
+                                            onPress={handleSelectFile}
+                                            icon="file-upload"
+                                        >
+                                            Seleccionar Consentimiento
+                                        </Button>
 
-                                {file && (
-                                    <Text style={styles.fileInfo}>
-                                        Archivo seleccionado: {file.name}
-                                    </Text>
+                                        {file && (
+                                            <Text style={styles.fileInfo}>
+                                                Archivo seleccionado: {file.name}
+                                            </Text>
+                                        )}
+
+                                        <Button
+                                            mode="contained"
+                                            onPress={handleUploadFile}
+                                            disabled={!file}
+                                            style={styles.submitButton}
+                                            icon="cloud-upload"
+                                        >
+                                            Subir Consentimiento
+                                        </Button>
+                                    </>
                                 )}
-
-                                <Button
-                                    mode="contained"
-                                    onPress={submit}
-                                    disabled={!file}
-                                    style={styles.submitButton}
-                                    icon="cloud-upload"
-                                >
-                                    Subir Consentimiento
-                                </Button>
                             </View>
                         </Card.Content>
                     </Card>
@@ -422,8 +473,23 @@ const PatientDetailsScreen = () => {
                     customSize={64}
                 />
             </View>
+
+            <EditPatientModal
+                visible={editModalVisible}
+                patient={{
+                    name: patient?.name || '',
+                    lastName: patient?.lastName || '',
+                    surName: patient?.surName || '',
+                    sex: patient?.sex || '',
+                    phone: patient?.phone || '',
+                    birthDate: patient?.birthDate || '',
+                }}
+                onSave={handleSavePatient}
+                onCancel={() => setEditModalVisible(false)}
+            />
         </SafeAreaView >
     );
+
 };
 
 const styles = StyleSheet.create({
@@ -614,7 +680,9 @@ const styles = StyleSheet.create({
         color: '#666',
         fontSize: 14,
     },
-
+    backButton: {
+        marginLeft: 8,
+    },
     cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -627,6 +695,14 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         fontWeight: '600',
     },
+    consentCard: {
+        marginVertical: 10,
+        backgroundColor: '#e8f5e9',
+    },
+    consentText: {
+        marginBottom: 10,
+        fontSize: 16,
+    },
 });
 
-export default PatientDetailsScreen; 
+export default PatientDetailsScreen;

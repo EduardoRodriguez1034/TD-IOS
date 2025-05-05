@@ -2,8 +2,17 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { theme } from './constants/theme';
+import { useFonts } from 'expo-font'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    ...MaterialCommunityIcons.font,
+  })
+
+  if(!fontsLoaded) {
+    return null;
+  }
   return (
     <PaperProvider theme={theme}>
       <Stack>
