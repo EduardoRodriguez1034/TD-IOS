@@ -339,7 +339,7 @@ export const usePatient = create((set) => ({
             set({ isLoading: false });
         }
     },
-    updatePatient: async (idPatient) => {
+    updatePatient: async (idPatient, { name, lastName, surName, sex, phone, birthDate }) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/patient/${idPatient}`, {
@@ -404,14 +404,17 @@ export const useTreatment = create((set) => ({
     isAuthenticated: false,
     isCheckingAuth: true,
 
-    createTreatment: async (treatmentType, description, price) => {
-        set({ isLoading: true, error: null });
+    createTreatment: async (treatmentType, price, description) => {
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/treatment`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ treatmentType, description, price }),
+                body: JSON.stringify({
+                    treatmentType,
+                    price,
+                    description,
+                }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -879,7 +882,6 @@ export const useAppointment = create((set) => ({
             set({ isLoading: false });
         }
     },
-    // dentro de useAppointment:
     getNextAppointmentForPatient: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
@@ -1041,14 +1043,14 @@ export const useAppointment = create((set) => ({
             set({ isLoading: false });
         }
     },
-    updateAppointment: async (idAppointment) => {
+    updateAppointment: async (idAppointment, { date, idTreatment }) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/${idAppointment}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ date, idUser, idPatient, idTreatment }),
+                body: JSON.stringify({ date, idTreatment }),
             });
             const data = await response.json();
             if (!response.ok) {
@@ -1073,22 +1075,22 @@ export const useAppointment = create((set) => ({
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 credentials: 'include',
             });
-    
+
             // 1. Verificación explícita para 204
             if (response.status === 204) {
-                return { 
-                    success: true, 
+                return {
+                    success: true,
                     isLoading: false,
                     error: null
                 };
             }
-    
+
             // 2. Solo intentar leer respuesta si no es 204
             if (!response.ok) {
                 // Manejo de errores con verificación de contenido
                 const text = await response.text();
                 let errorMessage = 'Error al eliminar cita';
-                
+
                 try {
                     const errorData = text ? JSON.parse(text) : {};
                     errorMessage = errorData.message || errorMessage;
@@ -1096,21 +1098,21 @@ export const useAppointment = create((set) => ({
                     // Si no es JSON válido, usa el texto plano o mensaje por defecto
                     errorMessage = text || errorMessage;
                 }
-                
+
                 return {
                     success: false,
                     isLoading: false,
                     error: errorMessage
                 };
             }
-    
+
             // 3. Para otros códigos de éxito (no 204)
             return {
                 success: true,
                 isLoading: false,
                 error: null
             };
-    
+
         } catch (error) {
             console.error("Error en deleteAppointment:", error);
             return {
@@ -1286,38 +1288,6 @@ export const useInformedConsent = create((set) => ({
     isAuthenticated: false,
     isCheckingAuth: true,
 
-    addInformedConsent: async (idPatient, file) => {
-        set({ isLoading: true, error: null });
-        try {
-            const formData = new FormData();
-            formData.append('file', {
-                uri: file.uri,
-                name: file.name,
-                type: file.mimeType,
-            });
-
-            const response = await fetch(`https://truval-dental.ddns.net:8443/informed-consent/${idPatient}`, {
-                method: 'POST',
-                credentials: 'include',
-                body: formData,
-            });
-            const data = await response.json();
-            console.log("Response data:", data);
-            if (!response.ok) {
-                set({ error: data.message });
-                return { isLoading: false, success: false, error: data.message };
-            }
-
-            return { success: true, isLoading: false, isAuthenticated: true, clinical: data.clinical };
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al añadir documento de consentimiento informado:", error);
-            return { isLoading: false, success: false, error: error.message };
-        } finally {
-            set({ isLoading: false });
-        }
-    },
-
     getInformedConsent: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
@@ -1328,12 +1298,22 @@ export const useInformedConsent = create((set) => ({
             });
             const data = await response.json();
             console.log("Response data:", data);
+
             if (!response.ok) {
-                set({ error: data.message });
-                return { isLoading: false, success: false, error: data.message };
+                // si el status no es 2xx, guardamos el error y salimos
+                set({ error: data.message, isLoading: false });
+                return { success: false, error: data.message };
             }
 
-            return { success: true, isLoading: false, isAuthenticated: true, clinical: data.clinical };
+            const { result } = data;
+            return {
+              success: true,
+              consent: {
+                filename: result.filename,
+                idPatient: result.idPatient,
+                url:      result.url
+              }
+            };
         } catch (error) {
             set({ isLoading: false, error: error.message });
             console.error("Error al buscar historial clinico:", error);

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform, Dimensions, KeyboardAvoidingView, SafeAreaView } from 'react-native';
-import { Text, TextInput, Button, Card, Title, IconButton, Menu, Divider } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
+import { Text, TextInput, Button, Card, Title } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
-import * as DocumentPicker from 'expo-document-picker';
 import { usePatient } from '../store/authStore';
-const { width } = Dimensions.get('window');
+import { SuccessModal } from '../components/SuccessModal';
 
 const NewPatientScreen = () => {
   const router = useRouter();
@@ -15,10 +14,25 @@ const NewPatientScreen = () => {
   const [sex, setSex] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [phone, setPhone] = useState('');
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+
   const { createPatient, error, isLoading, isAuthenticated } = usePatient();
+
+  const resetForm = () => {
+    setName('');
+    setLastName('');
+    setSurName('');
+    setSex('');
+    setPhone('');
+    setBirthDate('');
+  };
 
   const handleNewPatient = async (e) => {
     e.preventDefault();
+    if (!name || !lastName || !surName || !sex || !phone || !birthDate) {
+      Alert.alert('Error', 'Todos loc campos son obligatorios.');
+      return;
+    }
     try {
       const result = await createPatient(name, lastName, surName, sex, phone, birthDate);
 
@@ -26,14 +40,19 @@ const NewPatientScreen = () => {
         console.log('Error:', result.message);
         return;
       } else {
-        router.replace('/(tabs)');
+        resetForm();
+        setSuccessModalVisible(true);
+        setTimeout(() => {
+          setSuccessModalVisible(false);
+          router.replace('/(tabs)');
+        }, 2000);
       }
     } catch (error) {
       console.error('Error al crear el paciente:', error);
       return;
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -141,6 +160,16 @@ const NewPatientScreen = () => {
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>
+      <SuccessModal
+        visible={successModalVisible}
+        title="Paciente creado exitosamente"
+        message="El paciente ha sido registrado en el sistema."
+        buttonText="Volver al inicio del sistema"
+        onDismiss={() => {
+          setSuccessModalVisible(false);
+          router.replace('/(tabs)');
+        }}
+      />
     </SafeAreaView>
   );
 };

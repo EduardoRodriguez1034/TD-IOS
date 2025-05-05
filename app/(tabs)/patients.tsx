@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, Dimensions } from 'react-native';
-import { Card, Title, Button, IconButton, Searchbar, FAB, Avatar, Chip, Menu, Divider } from 'react-native-paper';
+import { Card, Title, IconButton, Searchbar, FAB, Chip, Menu, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { usePatient } from '../store/authStore';
@@ -111,24 +111,25 @@ const PatientsScreen = () => {
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [patients, setPatients] = useState([]);
+
   const { getAllPatients, error, isAuthenticated } = usePatient();
 
-
-
-  useEffect(() => {
-    const fetchPatients = async () => {
-      const result = await getAllPatients();
-      if (result && result.success && Array.isArray(result.patient)) {
-        setPatients(result.patient);
+  const fetchPatients = useCallback(async () => {
+    try {
+      const response = await getAllPatients();
+      if (response.success && Array.isArray(response.patient)) {
+        setPatients(response.patient)
       } else {
-        console.error(result?.error || 'Error fetching patients');
-        setPatients([]);
+        setPatients([])
       }
-    };
-  
-    fetchPatients();
-  }, []);
-  
+    } catch (error) {
+      console.error('Error al buscar pacientes:', error)
+    }
+  }, [getAllPatients])
+
+
+  useEffect(() => { fetchPatients(); }, [fetchPatients]);
+
 
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase());

@@ -7,9 +7,13 @@ import { useAppointment } from '../store/authStore';
 
 const HomeScreen = () => {
   const router = useRouter();
-  const { getAppointmentByDate } = useAppointment();
-  const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
 
+  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<any[]>([]);
+
+  const { getAppointmentByDate } = useAppointment();
+
+  const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
   const formattedDate = useMemo(() => {
     const today = new Date();
     const d = today.toLocaleDateString('es-ES', {
@@ -18,39 +22,28 @@ const HomeScreen = () => {
     return d.charAt(0).toUpperCase() + d.slice(1);
   }, []);
 
-  const [loading, setLoading] = useState(true);
-  const [appointments, setAppointments] = useState<any[]>([]);
-
- // Usamos useFocusEffect en lugar de useEffect
- useFocusEffect(
-  useCallback(() => {
-    let isActive = true;
-    const fetchToday = async () => {
-      setLoading(true);
-      try {
-        const res = await getAppointmentByDate(todayStr);
-        if (isActive) {
-          if (res.success) {
-            setAppointments(res.appointments);
-          } else {
-            console.error('Error al traer citas:', res.error);
-            setAppointments([]);
-          }
-        }
-      } catch (e) {
-        console.error('Error inesperado:', e);
-      } finally {
-        if (isActive) setLoading(false);
+  const fetchToday = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await getAppointmentByDate(todayStr);
+      if (response.success) {
+        setAppointments(response.appointments)
+      } else {
+        setAppointments([]);
       }
-    };
-    fetchToday();
-    // cleanup
-    return () => { isActive = false; };
+    } catch (error) {
+      console.error('Error al traer las citas', error)
+    } finally {
+      setLoading(false)
+    }
   }, [getAppointmentByDate, todayStr])
-);
 
-  // Capitalizar primera letra
-  const dateString = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  // Usamos useFocusEffect en lugar de useEffect
+  useFocusEffect(
+    useCallback(() => {
+      fetchToday();
+    }, [fetchToday])
+  )
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -67,7 +60,7 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.container}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -140,7 +133,7 @@ const HomeScreen = () => {
               </View>
             </Card.Content>
             <Card.Actions style={styles.cardActions}>
-              <Button 
+              <Button
                 onPress={() => router.push('/patients')}
                 labelStyle={styles.buttonLabel}
               >

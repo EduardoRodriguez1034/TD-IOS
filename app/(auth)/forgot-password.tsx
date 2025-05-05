@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { Stack } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import { SuccessModal } from '../components/SuccessModal';
 
 const ForgotPasswordScreen = () => {
-  const [email, setEmail] = useState('');
-  const { forgotPassword, isLoading, error } = useAuthStore();
   const router = useRouter();
 
+  const [email, setEmail] = useState('');
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+
+  const { forgotPassword, isLoading, error } = useAuthStore();
+
   const handleNext = async (e) => {
-    e.preventDefault();
     try {
       if (email.trim()) {
 
@@ -22,14 +25,18 @@ const ForgotPasswordScreen = () => {
           console.log('Error:', result.message);
           return;
         } else {
-          router.replace('/password-mail');
+          setSuccessModalVisible(true);
+          setTimeout(() => {
+            setSuccessModalVisible(false);
+            router.replace('/login');
+          }, 5000);
         }
       }
     } catch (error) {
       console.error('Error al enviar el correo:', error);
       return;
     }
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -63,15 +70,15 @@ const ForgotPasswordScreen = () => {
           autoCapitalize="none"
         />
         {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
-          <Button
-            mode="contained"
-            onPress={handleNext}
-            style={styles.button}
-            labelStyle={styles.buttonLabel}
-            disabled={!email.trim() || isLoading}
-          >
-            {isLoading ? 'Cargando...' : 'Siguiente'}
-          </Button>
+        <Button
+          mode="contained"
+          onPress={handleNext}
+          style={styles.button}
+          labelStyle={styles.buttonLabel}
+          disabled={!email.trim() || isLoading}
+        >
+          {isLoading ? 'Cargando...' : 'Siguiente'}
+        </Button>
       </View>
     </View>
   );

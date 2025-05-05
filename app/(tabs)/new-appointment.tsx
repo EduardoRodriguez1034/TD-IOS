@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView } from 'react-native';
-import { Text, TextInput, Button, IconButton, Card, Title, Menu, Divider } from 'react-native-paper';
+import { Text, TextInput, Button, Card, Title, Menu } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { DatePickerModal } from 'react-native-paper-dates';
@@ -18,59 +18,59 @@ const NewAppointmentScreen = () => {
   const [open, setOpen] = useState(false);
   const [userList, setUserList] = useState([]);
   const [patientList, setPatientList] = useState([]);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+
   const { getAllUsers } = useAuthStore();
   const { getAllTreatments } = useTreatment();
   const { getAllPatients } = usePatient();
   const { createAppointment, isAuthenticated, isLoading, error } = useAppointment();
-  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchTreatments = async () => {
-      try {
-        const response = await getAllTreatments();
-        const treatments = response.treatment.map((item) => ({
-          label: item.treatmentType,
-          value: item.idTreatment
-        }))
+  const fetchTreatments = useCallback(async () => {
+    try {
+      const response = await getAllTreatments();
+      const treatments = response.treatment.map((item) => ({
+        label: item.treatmentType,
+        value: item.idTreatment
+      }))
 
-        setTreatmentList(treatments);
-      } catch (error) {
-        console.error('Error fetching treatments:', error);
-      }
-    };
+      setTreatmentList(treatments)
 
-    const fetchPatients = async () => {
-      try {
-        const response = await getAllPatients();
-        const patients = response.patient.map((item) => ({
-          label: `${item.name} ${item.lastName} ${item.surName}`,
-          value: item.idPatient
-        }))
+    } catch (error) {
+      console.error('Error fetching treatments:', error);
+      setTreatmentList(null)
+    }
+  }, [])
 
-        setPatientList(patients);
-      } catch (error) {
-        console.error('Error fetching patients:', error);
-      }
-    };
+  const fetchPatients = useCallback(async () => {
+    try {
+      const response = await getAllPatients();
+      const patients = response.patient.map((item) => ({
+        label: `${item.name} ${item.lastName} ${item.surName}`,
+        value: item.idPatient
+      }))
+      setPatientList(patients)
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    }
+  }, [])
 
-    const fetchUsers = async () => {
-      try {
-        const response = await getAllUsers();
-        const users = response.user.map((item) => ({
-          label: item.username,
-          value: item.idUser
-        }))
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await getAllUsers();
+      const users = response.user.map((item) => ({
+        label: item.username,
+        value: item.idUser
+      }))
 
-        setUserList(users);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
+      setUserList(users);
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }, [])
 
-    fetchTreatments();
-    fetchUsers();
-    fetchPatients();
-  }, []);
+  useEffect(() => { fetchTreatments(); }, [fetchTreatments])
+  useEffect(() => { fetchPatients(); }, [fetchPatients])
+  useEffect(() => { fetchUsers(); }, [fetchUsers])
 
   const resetForm = () => {
     setDate(null);
@@ -179,21 +179,25 @@ const NewAppointmentScreen = () => {
     const iso = buildISOString();
     if (!iso || !patient || !treatment || !user) return;
 
-    const res = await createAppointment({
-      date: iso,
-      idPatient: patient,
-      idTreatment: treatment,
-      idUser: user
-    });
-    if (res.success) {
-      resetForm();
-      setSuccessModalVisible(true);
-      setTimeout(() => {
-        setSuccessModalVisible(false);
-        router.back();
-      }, 2000);
-    } else {
-      console.error('No se pudo crear cita:', res.error);
+    try {
+      const res = await createAppointment({
+        date: iso,
+        idPatient: patient,
+        idTreatment: treatment,
+        idUser: user
+      });
+      if (res.success) {
+        resetForm();
+        setSuccessModalVisible(true);
+        setTimeout(() => {
+          setSuccessModalVisible(false);
+          router.replace('/(tabs)');
+        }, 2000);
+      } else {
+        console.error('No se pudo crear cita:', res.error);
+      }
+    } catch (error) {
+      console.error('Error while creating the appointment:', error)
     }
   };
 
@@ -304,7 +308,6 @@ const NewAppointmentScreen = () => {
         buttonText="Volver al listado"
         onDismiss={() => {
           setSuccessModalVisible(false);
-          router.back(); // Opcional: Navegar atrás al cerrar
         }}
       />
     </SafeAreaView>
