@@ -4,7 +4,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
-
+import CreateTreatment from './treatments';
+import { createStackNavigator } from '@react-navigation/stack';
 
 const customTheme = {
   ...DefaultTheme,
@@ -14,10 +15,19 @@ const customTheme = {
     background: COLORS.lightGray || '#F5F5F5',
     surface: 'white',
     text: '#000000',
-    // Puedes seguir agregando si quieres personalizar más
   },
 };
 
+const Stack = createStackNavigator();
+
+const TabNavigator = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="createTreatment" component={CreateTreatment} options={{ title: 'Crear Tratamiento' }} />
+      {/* Otros componentes de la pestaña */}
+    </Stack.Navigator>
+  );
+};
 
 export default function TabLayout() {
   return (
@@ -96,6 +106,15 @@ export default function TabLayout() {
             title: 'Agenda de Citas',
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons name="calendar" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="treatments"
+          options={{
+            title: 'Tratamientos',
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="medical-bag" size={size} color={color} />
             ),
           }}
         />
