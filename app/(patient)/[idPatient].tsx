@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator, Linking, Alert } from 'react-native';
-import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator, Linking, Alert, Modal } from 'react-native';
+import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button, TextInput, Portal } from 'react-native-paper';
 import { useRouter, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -25,6 +25,21 @@ const PatientDetailsScreen = () => {
     const [nextTreatment, setNextTreatment] = useState<string | null>(null);
     const [informedConsent, setInformedConsent] = useState<InformedConsent | null>(null);
     const [editModalVisible, setEditModalVisible] = useState(false);
+    const [notes, setNotes] = useState<Array<{
+        id: string;
+        title: string;
+        type: string;
+        description: string;
+        createdAt: string;
+    }>>([]);
+    const [isEditingNotes, setIsEditingNotes] = useState(false);
+    const [newNote, setNewNote] = useState({
+        title: '',
+        type: '',
+        description: '',
+        customType: ''
+    });
+    const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
 
     const { getAPatient, updatePatient, isLoading, isAuthenticated, error } = usePatient();
     const { getClinicalRecordByPatientId } = useClinicalRecord();
@@ -258,6 +273,42 @@ const PatientDetailsScreen = () => {
         }
     };
 
+    const noteTypes = [
+        'General',
+        'Alergias',
+        'Medicamentos',
+        'Observaciones',
+        'Otros'
+    ];
+
+    const handleTypeSelect = (type: string) => {
+        if (type === 'Otros') {
+            setShowCustomTypeInput(true);
+            setNewNote(prev => ({ ...prev, type: '' }));
+        } else {
+            setShowCustomTypeInput(false);
+            setNewNote(prev => ({ ...prev, type, customType: '' }));
+        }
+    };
+
+    const handleSaveNotes = async () => {
+        if (!idPatient) return;
+        try {
+            const noteToSave = {
+                ...newNote,
+                id: Date.now().toString(),
+                createdAt: new Date().toISOString()
+            };
+            setNotes([...notes, noteToSave]);
+            setNewNote({ title: '', type: '', description: '', customType: '' });
+            setIsEditingNotes(false);
+            setShowCustomTypeInput(false);
+            Alert.alert('Éxito', 'Nota guardada correctamente');
+        } catch (error) {
+            Alert.alert('Error', 'No se pudieron guardar las notas');
+        }
+    };
+
     if (!patient) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -382,6 +433,121 @@ const PatientDetailsScreen = () => {
                                         No hay citas futuras programadas
                                     </Text>
                                 )}
+                            </View>
+
+                            <Divider style={styles.divider} />
+                            {/* Notas del paciente */}
+                            <View style={styles.infoSection}>
+                                <Title style={styles.sectionTitle}>Notas del Paciente</Title>
+                                <Card style={styles.notesCard}>
+                                    <Card.Content>
+                                        {isEditingNotes ? (
+                                            <>
+                                                <TextInput
+                                                    mode="outlined"
+                                                    label="Nombre de la nota"
+                                                    value={newNote.title}
+                                                    onChangeText={(text) => setNewNote(prev => ({ ...prev, title: text }))}
+                                                    style={styles.notesInput}
+                                                />
+                                                <View style={styles.dropdownContainer}>
+                                                    <Text style={styles.dropdownLabel}>Tipo de nota</Text>
+                                                    <View style={styles.dropdown}>
+                                                        {noteTypes.map((type) => (
+                                                            <Chip
+                                                                key={type}
+                                                                selected={newNote.type === type || (type === 'Otros' && showCustomTypeInput)}
+                                                                onPress={() => handleTypeSelect(type)}
+                                                                style={styles.typeChip}
+                                                                mode={(newNote.type === type || (type === 'Otros' && showCustomTypeInput)) ? "flat" : "outlined"}
+                                                            >
+                                                                {type}
+                                                            </Chip>
+                                                        ))}
+                                                    </View>
+                                                    {showCustomTypeInput && (
+                                                        <TextInput
+                                                            mode="outlined"
+                                                            label="Especifique el tipo de nota"
+                                                            value={newNote.customType}
+                                                            onChangeText={(text) => setNewNote(prev => ({ ...prev, type: text, customType: text }))}
+                                                            style={[styles.notesInput, styles.customTypeInput]}
+                                                        />
+                                                    )}
+                                                </View>
+                                                <TextInput
+                                                    mode="outlined"
+                                                    label="Descripción"
+                                                    multiline
+                                                    numberOfLines={4}
+                                                    value={newNote.description}
+                                                    onChangeText={(text) => setNewNote(prev => ({ ...prev, description: text }))}
+                                                    style={styles.notesInput}
+                                                />
+                                                <View style={styles.notesActions}>
+                                                    <Button
+                                                        mode="outlined"
+                                                        onPress={() => {
+                                                            setIsEditingNotes(false);
+                                                            setNewNote({ title: '', type: '', description: '', customType: '' });
+                                                            setShowCustomTypeInput(false);
+                                                        }}
+                                                        style={styles.notesButton}
+                                                    >
+                                                        Cancelar
+                                                    </Button>
+                                                    <Button
+                                                        mode="contained"
+                                                        onPress={handleSaveNotes}
+                                                        style={styles.notesButton}
+                                                        disabled={!newNote.title || (!newNote.type && !newNote.customType) || !newNote.description}
+                                                    >
+                                                        Guardar
+                                                    </Button>
+                                                </View>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {notes.length > 0 ? (
+                                                    notes.map((note) => (
+                                                        <Card key={note.id} style={styles.noteItem}>
+                                                            <Card.Content>
+                                                                <View style={styles.noteHeader}>
+                                                                    <Title style={styles.noteTitle}>{note.title}</Title>
+                                                                    <Chip mode="outlined" style={styles.noteType}>
+                                                                        {note.type}
+                                                                    </Chip>
+                                                                </View>
+                                                                <Text style={styles.noteDescription}>{note.description}</Text>
+                                                                <Text style={styles.noteDate}>
+                                                                    {new Date(note.createdAt).toLocaleDateString('es-ES', {
+                                                                        year: 'numeric',
+                                                                        month: 'long',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </Text>
+                                                            </Card.Content>
+                                                        </Card>
+                                                    ))
+                                                ) : (
+                                                    <Text style={styles.noNotesText}>
+                                                        No hay notas registradas para este paciente.
+                                                    </Text>
+                                                )}
+                                                <Button
+                                                    mode="outlined"
+                                                    onPress={() => setIsEditingNotes(true)}
+                                                    icon="plus"
+                                                    style={styles.addNoteButton}
+                                                >
+                                                    Agregar Nueva Nota
+                                                </Button>
+                                            </>
+                                        )}
+                                    </Card.Content>
+                                </Card>
                             </View>
 
                             <Divider style={styles.divider} />
@@ -702,6 +868,124 @@ const styles = StyleSheet.create({
     consentText: {
         marginBottom: 10,
         fontSize: 16,
+    },
+    notesCard: {
+        marginBottom: 12,
+        borderRadius: 8,
+        backgroundColor: '#fff',
+    },
+    notesInput: {
+        marginBottom: 16,
+    },
+    dropdownContainer: {
+        marginBottom: 16,
+    },
+    dropdownLabel: {
+        fontSize: 16,
+        marginBottom: 8,
+        color: '#666',
+    },
+    dropdown: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    typeChip: {
+        marginBottom: 8,
+    },
+    notesActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 8,
+    },
+    notesButton: {
+        minWidth: 100,
+    },
+    addNoteButton: {
+        marginTop: 16,
+    },
+    noteItem: {
+        marginBottom: 12,
+        backgroundColor: '#f8f9fa',
+    },
+    noteHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    noteTitle: {
+        fontSize: 18,
+        flex: 1,
+    },
+    noteType: {
+        marginLeft: 8,
+    },
+    noteDescription: {
+        fontSize: 16,
+        color: '#333',
+        marginBottom: 8,
+        lineHeight: 24,
+    },
+    noteDate: {
+        fontSize: 12,
+        color: '#666',
+        fontStyle: 'italic',
+    },
+    noNotesText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginVertical: 16,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 12,
+        width: '90%',
+        maxHeight: '80%',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    modalTitle: {
+        fontSize: 20,
+        color: COLORS.primary,
+    },
+    modalScroll: {
+        padding: 16,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        padding: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#e0e0e0',
+        gap: 8,
+    },
+    modalButton: {
+        minWidth: 100,
+    },
+    viewNotesButton: {
+        marginVertical: 8,
+    },
+    customTypeInput: {
+        marginTop: 8,
     },
 });
 
