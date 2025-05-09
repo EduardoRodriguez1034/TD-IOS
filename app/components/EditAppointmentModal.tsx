@@ -12,9 +12,10 @@ interface EditAppointmentModalProps {
         dateISO: string;
         treatmentType: string;
         patientName: string;
+        isConfirmed: boolean;
     };
     treatments: Array<{ label: string; value: number }>;
-    onSave: (updatedData: { date: string; idTreatment: number }) => void;
+    onSave: (updatedData: { date: string; idTreatment: number, isConfirmed: boolean; }) => void;
     onCancel: () => void;
 }
 
@@ -121,6 +122,7 @@ export const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     const [date, setDate] = useState(new Date(appointment.dateISO));
     const [showDateTimePicker, setShowDateTimePicker] = useState(false);
     const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+    const [confirmed, setConfirmed] = useState(appointment.isConfirmed);
     const [selectedTreatment, setSelectedTreatment] = useState(() => {
         const currentTreatment = treatments.find(t => t.label === appointment.treatmentType);
         return currentTreatment ? currentTreatment.value : (treatments[0]?.value || 0);
@@ -130,13 +132,9 @@ export const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         onSave({
             date: date.toISOString(),
             idTreatment: selectedTreatment,
+            isConfirmed: confirmed
         });
     };
-
-    function setTime(arg0: string) {
-        throw new Error('Function not implemented.');
-    }
-
     return (
         <Modal transparent visible={visible} animationType="fade">
             <View style={styles.overlay}>
@@ -202,6 +200,23 @@ export const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
                                 setTreatment={setSelectedTreatment}
                                 treatmentList={treatments}
                             />
+                        </View>
+                        <Text style={styles.label}>¿Confirmada?</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 10 }}>
+                            <Button
+                                mode={confirmed ? 'contained' : 'outlined'}
+                                onPress={() => setConfirmed(true)}
+                                style={{ flex: 1, marginRight: 5 }}
+                            >
+                                Confirmada
+                            </Button>
+                            <Button
+                                mode={!confirmed ? 'contained' : 'outlined'}
+                                onPress={() => setConfirmed(false)}
+                                style={{ flex: 1, marginLeft: 5 }}
+                            >
+                                No confirmada
+                            </Button>
                         </View>
                         <View style={styles.buttonContainer}>
                             <Button

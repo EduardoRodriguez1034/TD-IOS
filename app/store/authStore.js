@@ -314,6 +314,35 @@ export const usePatient = create((set) => ({
             set({ isLoading: false });
         }
     },
+    getNewPatients: async () => {
+        try {
+            const response = await fetch('https://truval-dental.ddns.net:8443/patient', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // si estás usando cookies
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener pacientes');
+            }
+
+            const now = new Date();
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(now.getMonth() - 1);
+
+            const nuevos = data.patient.filter((p) => {
+                const created = new Date(p.createdAt);
+                return created >= oneMonthAgo;
+            });
+            return { success: true, count: nuevos.length };
+        } catch (error) {
+            console.error('Error al obtener pacientes nuevos:', error);
+            return { success: false, count: 0 };
+        }
+    },
     getAPatient: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
@@ -935,6 +964,29 @@ export const useAppointment = create((set) => ({
             set({ isLoading: false });
         }
     },
+    getPendingAppointments: async () => {
+        try {
+            const response = await fetch('https://truval-dental.ddns.net:8443/appointments', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener citas');
+            }
+
+            // ✅ Filtramos las que no están completadas
+            const pendientes = data.appointments.filter((a) => a.isCompleted === false);
+
+            return { success: true, count: pendientes.length };
+        } catch (error) {
+            console.error('Error al obtener citas pendientes:', error);
+            return { success: false, count: 0 };
+        }
+    },
     getNextAppointmentForPatient: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
@@ -959,6 +1011,44 @@ export const useAppointment = create((set) => ({
             return { success: false, error: err.message };
         } finally {
             set({ isLoading: false });
+        }
+    },
+    getUnconfirmedAppointmentsThisWeek: async () => {
+        try {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay()); // Domingo
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6); // Sábado
+            endOfWeek.setHours(23, 59, 59, 999);
+
+            const response = await fetch('https://truval-dental.ddns.net:8443/appointments', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener citas');
+            }
+
+            const citasPendientes = data.appointments.filter(a => {
+                const date = new Date(a.date);
+                return (
+                    !a.isConfirmed &&
+                    date >= startOfWeek &&
+                    date <= endOfWeek
+                );
+            });
+
+            return { success: true, count: citasPendientes.length };
+        } catch (error) {
+            console.error('Error al obtener confirmaciones pendientes:', error);
+            return { success: false, count: 0 };
         }
     },
     getAppointmentByPatientId: async (date, idPatient) => {
@@ -1094,14 +1184,14 @@ export const useAppointment = create((set) => ({
             set({ isLoading: false });
         }
     },
-    updateAppointment: async (idAppointment, { date, idTreatment }) => {
+    updateAppointment: async (idAppointment, { date, idTreatment, isConfirmed }) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/${idAppointment}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ date, idTreatment }),
+                body: JSON.stringify({ date, idTreatment, isConfirmed }),
             });
             const data = await response.json();
             if (!response.ok) {

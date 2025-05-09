@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Platform, StyleSheet, FlatList, ScrollView } from 'react-native'
 import { Calendar } from 'react-native-calendars'
-import { Card, Avatar, ActivityIndicator, Text, Button } from 'react-native-paper'
+import { Card, Avatar, ActivityIndicator, Text, Button, Chip } from 'react-native-paper'
 import { COLORS } from '../constants/theme';
 import { useAppointment, usePatient, useTreatment } from '../store/authStore'
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -16,6 +16,7 @@ interface RawAppointment {
   idPatient: number
   idTreatment: number
   isCompleted: boolean
+  isConfirmed: boolean
 }
 
 interface PatientInfo {
@@ -39,6 +40,7 @@ interface AgendaItem {
   patientName: string
   patientPhone: string
   treatmentType: string
+  isConfirmed: boolean
   name: string;
   height: number;
   day: string;
@@ -138,7 +140,8 @@ export default function ScheduleScreen() {
           treatmentType: treatmentMap.get(appt.idTreatment)!,
           name: patientMap.get(appt.idPatient)!,
           height: 120,
-          day: day
+          day: day,
+          isConfirmed: appt.isConfirmed
         })
       })
 
@@ -168,7 +171,7 @@ export default function ScheduleScreen() {
 
   const dayAppointments = useMemo(() => items[selectedDate] || [], [items, selectedDate]);
 
-  const handleSaveAppointment = async ({ date, idTreatment }: { date: string; idTreatment: number }) => {
+  const handleSaveAppointment = async ({ date, idTreatment, isConfirmed }: { date: string; idTreatment: number, isConfirmed: boolean }) => {
     if (!currentAppointment) return;
 
     try {
@@ -190,7 +193,7 @@ export default function ScheduleScreen() {
       });
 
       // Aquí debes implementar la llamada a tu API para actualizar la cita
-      await updateAppointment(currentAppointment.idAppointment, { date, idTreatment });
+      await updateAppointment(currentAppointment.idAppointment, { date, idTreatment, isConfirmed });
 
       setEditModalVisible(false);
 
@@ -245,8 +248,10 @@ export default function ScheduleScreen() {
       setItems(prevItems => {
         const updatedItems = { ...prevItems };
         Object.keys(updatedItems).forEach(date => {
-          updatedItems[date] = updatedItems[date].filter(
-            apt => apt.idAppointment !== selectedAppointment
+          updatedItems[date] = updatedItems[date].map(apt =>
+            apt.idAppointment === selectedAppointment
+              ? { ...apt, isCompleted: true }
+              : apt
           );
         });
         return updatedItems;
@@ -305,7 +310,22 @@ export default function ScheduleScreen() {
         <Card.Content style={styles.cardContent}>
 
           <View style={styles.leftColumn}>
-
+            <Chip
+              mode="outlined"
+              style={{
+                marginTop: 4,
+                alignSelf: 'flex-start',
+                marginBottom: 10,
+                backgroundColor: item.isConfirmed ? '#e0f8e9' : '#fdecea',
+                borderColor: item.isConfirmed ? '#4caf50' : '#f44336'
+              }}
+              textStyle={{
+                color: item.isConfirmed ? '#388e3c' : '#c62828',
+                fontWeight: 'bold'
+              }}
+            >
+              {item.isConfirmed ? 'Confirmada' : 'No confirmada'}
+            </Chip>
             <Avatar.Text
               size={48}
               label={item.patientName.charAt(0)}
@@ -488,7 +508,8 @@ export default function ScheduleScreen() {
           idAppointment: 0,
           dateISO: new Date().toISOString(),
           treatmentType: '',
-          patientName: ''
+          patientName: '',
+          isConfirmed: null,
         }}
         treatments={treatmentOptions}
         onSave={handleSaveAppointment}

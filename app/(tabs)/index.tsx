@@ -3,15 +3,19 @@ import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, ActivityInd
 import { Card, Title, Paragraph, Button, IconButton, Avatar } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
-import { useAppointment } from '../store/authStore';
+import { useAppointment, usePatient } from '../store/authStore';
 
 const HomeScreen = () => {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [newPatientCount, setNewPatientCount] = useState(0);
+  const [pendingAppointments, setPendingAppointments] = useState(0);
+  const [unconfirmedAppointments, setUnconfirmedAppointments] = useState(0);
+  const { getNewPatients } = usePatient();
 
-  const { getAppointmentByDate } = useAppointment();
+  const { getAppointmentByDate, getPendingAppointments, getUnconfirmedAppointmentsThisWeek } = useAppointment();
 
   const todayRange = useMemo(() => {
     const now = new Date();
@@ -38,6 +42,21 @@ const HomeScreen = () => {
     return d.charAt(0).toUpperCase() + d.slice(1);
   }, []);
 
+  const fetchNewPatients = useCallback(async () => {
+    const res = await getNewPatients();
+    if (res.success) setNewPatientCount(res.count);
+  }, [getNewPatients]);
+
+  const fetchPendingAppointments = useCallback(async () => {
+    const res = await getPendingAppointments();
+    if (res.success) setPendingAppointments(res.count);
+  }, [getPendingAppointments]);
+
+  const fetchUnconfirmedAppointmentsThisWeek = useCallback(async () => {
+    const res = await getUnconfirmedAppointmentsThisWeek();
+    if (res.success) setUnconfirmedAppointments(res.count);
+  }, [getUnconfirmedAppointmentsThisWeek]);
+
   const fetchToday = useCallback(async () => {
     setLoading(true)
     try {
@@ -59,7 +78,10 @@ const HomeScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchToday();
-    }, [fetchToday])
+      fetchNewPatients();
+      fetchPendingAppointments();
+      fetchUnconfirmedAppointmentsThisWeek();
+    }, [fetchToday, fetchNewPatients, fetchPendingAppointments, fetchUnconfirmedAppointmentsThisWeek])
   )
 
   return (
@@ -108,17 +130,10 @@ const HomeScreen = () => {
             <Card.Content>
               <Title style={styles.cardTitle}>Recordatorios</Title>
               <View style={styles.reminderItem}>
-                <Avatar.Icon size={40} icon="tooth-outline" style={styles.reminderIcon} />
-                <View style={styles.reminderText}>
-                  <Text style={styles.reminderTitle}>Seguimiento de Tratamientos</Text>
-                  <Text style={styles.reminderCount}>3 pacientes pendientes de seguimiento</Text>
-                </View>
-              </View>
-              <View style={styles.reminderItem}>
                 <Avatar.Icon size={40} icon="calendar-clock" style={[styles.reminderIcon, { backgroundColor: '#e8f0ff' }]} />
                 <View style={styles.reminderText}>
                   <Text style={styles.reminderTitle}>Confirmaciones Pendientes</Text>
-                  <Text style={styles.reminderCount}>5 citas por confirmar esta semana</Text>
+                  <Text style={styles.reminderCount}>Tienes {unconfirmedAppointments} cita sin confirmar esta semana</Text>
                 </View>
               </View>
             </Card.Content>
@@ -130,15 +145,11 @@ const HomeScreen = () => {
               <Title style={styles.cardTitle}>Resumen de Pacientes</Title>
               <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>12</Text>
-                  <Text style={styles.statLabel}>Tratamientos{'\n'}Activos</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>3</Text>
+                  <Text style={styles.statNumber}>{newPatientCount}</Text>
                   <Text style={styles.statLabel}>Nuevos{'\n'}Pacientes</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>8</Text>
+                  <Text style={styles.statNumber}>{pendingAppointments}</Text>
                   <Text style={styles.statLabel}>Consultas{'\n'}Pendientes</Text>
                 </View>
               </View>
