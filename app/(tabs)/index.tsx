@@ -4,6 +4,7 @@ import { Card, Title, Paragraph, Button, IconButton, Avatar } from 'react-native
 import { useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useAppointment, usePatient } from '../store/authStore';
+import { scheduleDailyReminder } from '../utils/notifications';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -57,6 +58,21 @@ const HomeScreen = () => {
     if (res.success) setUnconfirmedAppointments(res.count);
   }, [getUnconfirmedAppointmentsThisWeek]);
 
+  const fetchTomorrowAppointments = useCallback(async () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const startUTC = tomorrow.toISOString();
+
+    tomorrow.setHours(23, 59, 59, 999);
+    const endUTC = tomorrow.toISOString();
+
+    const res = await getAppointmentByDate(startUTC, endUTC);
+    if (res.success) {
+      await scheduleDailyReminder(res.appointments.length);
+    }
+  }, [getAppointmentByDate]);
+
   const fetchToday = useCallback(async () => {
     setLoading(true)
     try {
@@ -81,7 +97,8 @@ const HomeScreen = () => {
       fetchNewPatients();
       fetchPendingAppointments();
       fetchUnconfirmedAppointmentsThisWeek();
-    }, [fetchToday, fetchNewPatients, fetchPendingAppointments, fetchUnconfirmedAppointmentsThisWeek])
+      fetchTomorrowAppointments();
+    }, [fetchToday, fetchNewPatients, fetchPendingAppointments, fetchUnconfirmedAppointmentsThisWeek, fetchTomorrowAppointments])
   )
 
   return (
