@@ -183,6 +183,12 @@ const PatientDetailsScreen = () => {
             .join(' ');
     };
 
+    const formatDateOnly = (raw: string) => {
+        const [dateOnly] = raw.split('T');
+        const [year, month, day] = dateOnly.split('-');
+        return `${day}/${month}/${year}`;
+    };
+
     const calculateAge = () => {
         const today = new Date();
         const birthDate = new Date(patient.birthDate);
@@ -381,9 +387,9 @@ const PatientDetailsScreen = () => {
                                 <Title style={styles.sectionTitle}>Información Personal</Title>
                                 <View style={styles.infoGrid}>
                                     <View style={styles.infoItem}>
-                                        <Text style={styles.infoLabel}>Fecha de Nacimiento</Text>
+                                        <Text style={styles.infoLabel}>Fecha de Nacimiento </Text>
                                         <Text style={styles.infoValue}>
-                                            {new Date(patient.birthDate).toLocaleDateString()}
+                                            {formatDateOnly(patient.birthDate)}
                                         </Text>
                                     </View>
                                     <View style={styles.infoItem}>
@@ -400,7 +406,7 @@ const PatientDetailsScreen = () => {
                             <Divider style={styles.divider} />
 
                             <View style={styles.infoSection}>
-                                <Title style={styles.sectionTitle}>Próxima Cita</Title>
+                                <Text variant="titleLarge" style={styles.sectionTitle}>Próxima Cita</Text>
                                 {loading ? (
                                     <ActivityIndicator />
                                 ) : nextAppointment ? (
@@ -559,7 +565,7 @@ const PatientDetailsScreen = () => {
                                     <Text>Cargando tratamientos...</Text>
                                 ) : clinical && clinical.treatmentsDone && clinical.treatmentsDone.length > 0 ? (
                                     clinical.treatmentsDone.map((idTreatment, index) => (
-                                        <Card key={idTreatment} style={styles.treatmentCard}>
+                                        <Card key={`${idTreatment}-${index}`} style={styles.treatmentCard}>
                                             <Card.Content>
                                                 <View style={styles.treatmentHeader}>
                                                     <Text style={styles.treatmentType}>

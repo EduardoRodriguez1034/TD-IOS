@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Text, TextInput, Button, Card, Title, Menu } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
-import { DatePickerModal } from 'react-native-paper-dates';
 import { usePatient, useAppointment, useTreatment, useAuthStore } from '../store/authStore';
 import { SuccessModal } from '../components/SuccessModal';
 
 const NewAppointmentScreen = () => {
   const router = useRouter();
-  const [date, setDate] = useState<Date | null>(null);
-  const [hour, setHour] = useState('');
+  const [dateTime, setDateTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [patient, setPatient] = useState('');
   const [treatment, setTreatment] = useState('');
   const [user, setUser] = useState('');
   const [treatmentList, setTreatmentList] = useState([]);
-  const [open, setOpen] = useState(false);
   const [userList, setUserList] = useState([]);
   const [patientList, setPatientList] = useState([]);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
@@ -73,8 +73,7 @@ const NewAppointmentScreen = () => {
   useEffect(() => { fetchUsers(); }, [fetchUsers])
 
   const resetForm = () => {
-    setDate(null);
-    setHour('');
+    setDateTime(new Date());
     setPatient('');
     setTreatment('');
     setUser('');
@@ -168,20 +167,15 @@ const NewAppointmentScreen = () => {
   };
 
   const buildISOString = () => {
-    if (!date || !hour) return '';
-    const [h, m] = hour.split(':').map(n => parseInt(n, 10));
-    const d = new Date(date);
-    d.setHours(h, m, 0, 0);
-    return d.toISOString();
+    if (!dateTime) return '';
+    return new Date(dateTime).toISOString(); // Esto ya da UTC
   };
 
   const handleCreate = async () => {
-    const iso = buildISOString();
-    if (!iso || !patient || !treatment || !user) return;
-
+    if (!dateTime || !patient || !treatment || !user) return;
     try {
       const res = await createAppointment({
-        date: iso,
+        date: buildISOString(),
         idPatient: patient,
         idTreatment: treatment,
         idUser: user
@@ -197,9 +191,10 @@ const NewAppointmentScreen = () => {
         console.error('No se pudo crear cita:', res.error);
       }
     } catch (error) {
-      console.error('Error while creating the appointment:', error)
+      console.error('Error while creating the appointment:', error);
     }
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -234,36 +229,51 @@ const NewAppointmentScreen = () => {
                 <View style={{ marginVertical: 10 }}>
                   <Button
                     mode="outlined"
-                    onPress={() => setOpen(true)}
+                    onPress={() => setShowDatePicker(true)}
                     style={styles.input}
                   >
-                    {date ? date.toISOString().split('T')[0] : 'Selecciona fecha'}
+                    {dateTime.toLocaleString('es-MX', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    })}
                   </Button>
 
-                  <DatePickerModal
-                    locale="es"
-                    mode="single"
-                    visible={open}
-                    onDismiss={() => setOpen(false)}
-                    date={date ? new Date(date) : undefined}
-                    onConfirm={(params) => {
-                      setOpen(false);
-                      if (params.date) {
-                        setDate(params.date);
-                      }
-                    }}
-                  />
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={dateTime}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      onChange={(event, selectedDate) => {
+                        setShowDatePicker(false);
+                        if (selectedDate) {
+                          const updatedDate = new Date(dateTime);
+                          updatedDate.setFullYear(selectedDate.getFullYear());
+                          updatedDate.setMonth(selectedDate.getMonth());
+                          updatedDate.setDate(selectedDate.getDate());
+                          setDateTime(updatedDate);
+                          setShowTimePicker(true); // Mostrar el segundo picker después
+                        }
+                      }}
+                    />
+                  )}
+
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={dateTime}
+                      mode="time"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={(event, selectedTime) => {
+                        setShowTimePicker(false);
+                        if (selectedTime) {
+                          const updatedTime = new Date(dateTime);
+                          updatedTime.setHours(selectedTime.getHours());
+                          updatedTime.setMinutes(selectedTime.getMinutes());
+                          setDateTime(updatedTime);
+                        }
+                      }}
+                    />
+                  )}
                 </View>
-
-
-                <TextInput
-                  label="Hora"
-                  value={hour}
-                  onChangeText={setHour}
-                  style={styles.input}
-                  right={<TextInput.Icon icon="clock" />}
-                  mode="outlined"
-                />
 
                 <TreatmentDropdown
                   treatment={treatment}
@@ -292,7 +302,7 @@ const NewAppointmentScreen = () => {
                   onPress={() => { handleCreate() }}
                   style={styles.button}
                   contentStyle={styles.buttonContent}
-                  disabled={!date || !hour.trim() || !patient || !user || !treatment || isLoading}
+                  disabled={!dateTime || !patient || !user || !treatment || isLoading}
                 >
                   {isLoading ? 'Cargando...' : 'Crear Cita'}
                 </Button>

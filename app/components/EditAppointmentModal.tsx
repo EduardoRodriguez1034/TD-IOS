@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { Modal, View, StyleSheet, Animated, TouchableOpacity, FlatList, Dimensions, Platform } from 'react-native';
 import { Button, TextInput, Text, Card } from 'react-native-paper';
-import { DatePickerModal } from 'react-native-paper-dates';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../constants/theme';
+import { DatePickerModal } from 'react-native-paper-dates';
 
 interface EditAppointmentModalProps {
     visible: boolean;
@@ -118,24 +119,23 @@ export const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     onCancel,
 }) => {
     const [date, setDate] = useState(new Date(appointment.dateISO));
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [time, setTime] = useState(appointment.dateISO.split('T')[1].substring(0, 5));
-
+    const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+    const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
     const [selectedTreatment, setSelectedTreatment] = useState(() => {
         const currentTreatment = treatments.find(t => t.label === appointment.treatmentType);
         return currentTreatment ? currentTreatment.value : (treatments[0]?.value || 0);
     });
 
     const handleSave = () => {
-        const [hours, minutes] = time.split(':');
-        const newDate = new Date(date);
-        newDate.setHours(parseInt(hours), parseInt(minutes));
-
         onSave({
-            date: newDate.toISOString(),
+            date: date.toISOString(),
             idTreatment: selectedTreatment,
         });
     };
+
+    function setTime(arg0: string) {
+        throw new Error('Function not implemented.');
+    }
 
     return (
         <Modal transparent visible={visible} animationType="fade">
@@ -147,35 +147,52 @@ export const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
                         <Text style={styles.label}>Paciente:</Text>
                         <Text style={styles.value}>{appointment.patientName}</Text>
 
-                        <Text style={styles.label}>Fecha:</Text>
+                        <Text style={styles.label}>Fecha y Hora:</Text>
                         <Button
                             mode="outlined"
-                            onPress={() => setShowDatePicker(true)}
+                            onPress={() => {
+                                setPickerMode('date');
+                                setShowDateTimePicker(true);
+                            }}
                             style={styles.input}
                         >
-                            {date.toLocaleDateString()}
+                            {date.toLocaleString('es-MX', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                            })}
                         </Button>
-                        <DatePickerModal
-                            locale="es"
-                            mode="single"
-                            visible={showDatePicker}
-                            onDismiss={() => setShowDatePicker(false)}
-                            date={date}
-                            onConfirm={({ date }) => {
-                                setShowDatePicker(false);
-                                if (date) setDate(date);
-                            }}
-                        />
 
-                        <Text style={styles.label}>Hora:</Text>
-                        <TextInput
-                            mode="outlined"
-                            value={time}
-                            onChangeText={setTime}
-                            placeholder="HH:MM"
-                            keyboardType="numeric"
-                            style={styles.input}
-                        />
+                        {showDateTimePicker && (
+                            <DateTimePicker
+                                value={date}
+                                mode={pickerMode}
+                                is24Hour={false}
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    if (event.type === 'set' && selectedDate) {
+                                        if (pickerMode === 'date') {
+                                            const updated = new Date(date);
+                                            updated.setFullYear(selectedDate.getFullYear());
+                                            updated.setMonth(selectedDate.getMonth());
+                                            updated.setDate(selectedDate.getDate());
+                                            setDate(updated);
+
+                                            setPickerMode('time');
+                                            setShowDateTimePicker(true);
+
+                                        } else {
+                                            const updated = new Date(date);
+                                            updated.setHours(selectedDate.getHours());
+                                            updated.setMinutes(selectedDate.getMinutes());
+                                            setDate(updated);
+                                            setShowDateTimePicker(false);
+                                        }
+                                    } else {
+                                        setShowDateTimePicker(false); // cancelado
+                                    }
+                                }}
+                            />
+                        )}
 
                         <Text style={styles.label}>Tratamiento:</Text>
                         <View style={{ zIndex: 2 }}>

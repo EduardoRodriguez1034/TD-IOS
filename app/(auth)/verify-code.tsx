@@ -18,7 +18,6 @@ const VerifyCodeScreen = () => {
   const { verifyEmail, error, isLoading } = useAuthStore();
 
   const handleSubmit = async (e) => {
-    e.PreventDefauul()
     try {
       const result = await verifyEmail(code.join(''));
 

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { Text, TextInput, Button, Card, Title } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../constants/theme';
 import { usePatient } from '../store/authStore';
 import { SuccessModal } from '../components/SuccessModal';
@@ -12,9 +13,10 @@ const NewPatientScreen = () => {
   const [lastName, setLastName] = useState('');
   const [surName, setSurName] = useState('');
   const [sex, setSex] = useState('');
-  const [birthDate, setBirthDate] = useState('');
+  const [birthDate, setBirthDate] = useState(new Date());
   const [phone, setPhone] = useState('');
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const { createPatient, error, isLoading, isAuthenticated } = usePatient();
 
@@ -24,8 +26,19 @@ const NewPatientScreen = () => {
     setSurName('');
     setSex('');
     setPhone('');
-    setBirthDate('');
+    setBirthDate(new Date());
   };
+
+  const BackHandler = () => {
+    resetForm();
+    router.replace('/(tabs)')
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      resetForm();
+    }, [])
+  );
 
   const handleNewPatient = async (e) => {
     e.preventDefault();
@@ -103,27 +116,49 @@ const NewPatientScreen = () => {
                   mode="outlined"
                 />
 
-                <TextInput
-                  label="Sexo"
-                  value={sex}
-                  onChangeText={setSex}
-                  style={styles.input}
-                  right={<TextInput.Icon icon="account" />}
-                  mode="outlined"
-                />
+                <View style={styles.sexContainer}>
+                  <Text style={styles.label}>Sexo</Text>
+                  <View style={styles.sexOptions}>
+                    {['Hombre', 'Mujer'].map((option) => (
+                      <Button
+                        key={option}
+                        mode={sex === option ? 'contained' : 'outlined'}
+                        onPress={() => setSex(option)}
+                        style={styles.sexButton}
+                      >
+                        {option}
+                      </Button>
+                    ))}
+                  </View>
+                </View>
 
-                <TextInput
-                  label="Fecha de Nacimiento"
-                  value={birthDate}
-                  onChangeText={(text) => {
-                    setBirthDate(text);
-                    // Aquí podrías agregar validación de fecha si lo deseas
-                  }}
-                  placeholder="YYYY-MM-DD"
-                  style={styles.input}
-                  right={<TextInput.Icon icon="calendar-account" />}
+                <Button
                   mode="outlined"
-                />
+                  onPress={() => setShowDatePicker(true)}
+                  style={styles.input}
+                  icon="calendar"
+                >
+                  {birthDate.toLocaleDateString('es-MX', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Button>
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={birthDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    maximumDate={new Date()} // para evitar seleccionar el futuro
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(false);
+                      if (event.type === 'set' && selectedDate) {
+                        setBirthDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
 
                 <TextInput
                   label="Teléfono"
@@ -139,7 +174,7 @@ const NewPatientScreen = () => {
               <View style={styles.buttonContainer}>
                 <Button
                   mode="outlined"
-                  onPress={() => router.back()}
+                  onPress={() => { BackHandler() }}
                   style={styles.button}
                   contentStyle={styles.buttonContent}
                 >
@@ -193,6 +228,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  sexContainer: {
+    marginBottom: 16,
+  },
+  sexOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  sexButton: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   titleContainer: {
     flex: 1,

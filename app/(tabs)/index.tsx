@@ -13,7 +13,23 @@ const HomeScreen = () => {
 
   const { getAppointmentByDate } = useAppointment();
 
-  const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
+  const todayRange = useMemo(() => {
+    const now = new Date();
+
+    const localStart = new Date(now);
+    localStart.setHours(0, 0, 0, 0);
+
+    const localEnd = new Date(now);
+    localEnd.setHours(23, 59, 59, 999);
+
+    // ¡Conviértelos directamente a UTC con .toISOString()!
+    const startUTC = localStart.toISOString(); // 07:00 UTC para Tijuana
+    const endUTC = localEnd.toISOString();     // 06:59:59 UTC del día siguiente
+    console.log(startUTC)
+    console.log(endUTC)
+    return { startUTC, endUTC };
+  }, []);
+
   const formattedDate = useMemo(() => {
     const today = new Date();
     const d = today.toLocaleDateString('es-ES', {
@@ -25,7 +41,8 @@ const HomeScreen = () => {
   const fetchToday = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await getAppointmentByDate(todayStr);
+      const response = await getAppointmentByDate(todayRange.startUTC, todayRange.endUTC);
+      console.log('Citas recibidas:', response.appointments);
       if (response.success) {
         setAppointments(response.appointments)
       } else {
@@ -36,7 +53,7 @@ const HomeScreen = () => {
     } finally {
       setLoading(false)
     }
-  }, [getAppointmentByDate, todayStr])
+  }, [getAppointmentByDate, todayRange])
 
   // Usamos useFocusEffect en lugar de useEffect
   useFocusEffect(

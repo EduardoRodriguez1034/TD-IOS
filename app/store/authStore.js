@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { getAuthCookie } from '../store/getAuthCookie';
 
 export const useAuthStore = create((set) => ({
     user: null,
@@ -956,15 +955,13 @@ export const useAppointment = create((set) => ({
             set({ isLoading: false });
         }
     },
-    getAppointmentByDate: async (date) => {
+    getAppointmentByDate: async (start, end) => {
         set({ isLoading: true, error: null });
         try {
-            const authToken = await getAuthCookie();
-            const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/date?date=${date}`, {
+            const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/date?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
                 },
                 credentials: 'include',
             });
@@ -1307,12 +1304,12 @@ export const useInformedConsent = create((set) => ({
 
             const { result } = data;
             return {
-              success: true,
-              consent: {
-                filename: result.filename,
-                idPatient: result.idPatient,
-                url:      result.url
-              }
+                success: true,
+                consent: {
+                    filename: result.filename,
+                    idPatient: result.idPatient,
+                    url: result.url
+                }
             };
         } catch (error) {
             set({ isLoading: false, error: error.message });

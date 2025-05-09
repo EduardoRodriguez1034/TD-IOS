@@ -4,8 +4,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
-import CreateTreatment from './treatments';
-import { createStackNavigator } from '@react-navigation/stack';
 
 const customTheme = {
   ...DefaultTheme,
@@ -16,17 +14,6 @@ const customTheme = {
     surface: 'white',
     text: '#000000',
   },
-};
-
-const Stack = createStackNavigator();
-
-const TabNavigator = () => {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name="createTreatment" component={CreateTreatment} options={{ title: 'Crear Tratamiento' }} />
-      {/* Otros componentes de la pestaña */}
-    </Stack.Navigator>
-  );
 };
 
 export default function TabLayout() {

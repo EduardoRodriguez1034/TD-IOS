@@ -1,109 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, Dimensions } from 'react-native';
-import { Card, Title, IconButton, Searchbar, FAB, Chip, Menu, Divider } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Card, IconButton, Searchbar, FAB, Chip, Menu, Divider } from 'react-native-paper';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
-import { usePatient } from '../store/authStore';
-
-// Datos de ejemplo
-/*const patients = [
-  {
-    id: '1',
-    name: 'Juan Pérez',
-    lastVisit: '2024-03-15',
-    nextAppointment: '2024-03-25',
-    status: 'active',
-    phone: '+34 123 456 789',
-  },
-  {
-    id: '2',
-    name: 'María García',
-    lastVisit: '2024-03-10',
-    nextAppointment: null,
-    status: 'inactive',
-    phone: '+34 987 654 321',
-  },
-  {
-    id: '3',
-    name: 'Carlos Rodríguez',
-    lastVisit: '2024-03-18',
-    nextAppointment: '2024-04-01',
-    status: 'active',
-    phone: '+34 456 789 123',
-  },
-  {
-    id: '4',
-    name: 'Ana Martínez',
-    lastVisit: '2024-02-28',
-    nextAppointment: '2024-03-30',
-    status: 'active',
-    phone: '+34 789 123 456',
-  },
-  {
-    id: '5',
-    name: 'Pedro Sánchez',
-    lastVisit: '2024-01-15',
-    nextAppointment: null,
-    status: 'inactive',
-    phone: '+34 321 654 987',
-  },
-  {
-    id: '6',
-    name: 'Laura López',
-    lastVisit: '2024-03-20',
-    nextAppointment: '2024-04-05',
-    status: 'active',
-    phone: '+34 654 321 987',
-  },
-  {
-    id: '7',
-    name: 'Miguel Torres',
-    lastVisit: '2024-03-12',
-    nextAppointment: '2024-03-28',
-    status: 'active',
-    phone: '+34 147 258 369',
-  },
-  {
-    id: '8',
-    name: 'Sofia Ruiz',
-    lastVisit: '2024-02-20',
-    nextAppointment: null,
-    status: 'inactive',
-    phone: '+34 258 369 147',
-  },
-  {
-    id: '9',
-    name: 'David Moreno',
-    lastVisit: '2024-03-19',
-    nextAppointment: '2024-04-02',
-    status: 'active',
-    phone: '+34 369 147 258',
-  },
-  {
-    id: '10',
-    name: 'Carmen Jiménez',
-    lastVisit: '2024-03-17',
-    nextAppointment: '2024-03-29',
-    status: 'active',
-    phone: '+34 741 852 963',
-  },
-  {
-    id: '11',
-    name: 'Roberto Díaz',
-    lastVisit: '2024-01-10',
-    nextAppointment: null,
-    status: 'inactive',
-    phone: '+34 852 963 741',
-  },
-  {
-    id: '12',
-    name: 'Isabel Castro',
-    lastVisit: '2024-03-21',
-    nextAppointment: '2024-04-03',
-    status: 'active',
-    phone: '+34 963 741 852',
-  }
-];*/
+import { usePatient, useAppointment } from '../store/authStore';
 
 const PatientsScreen = () => {
   const router = useRouter();
@@ -111,8 +11,23 @@ const PatientsScreen = () => {
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [patients, setPatients] = useState([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
 
+  const { getAllAppointments } = useAppointment();
   const { getAllPatients, error, isAuthenticated } = usePatient();
+
+  const fetchAppointments = useCallback(async () => {
+    try {
+      const response = await getAllAppointments();
+      if (response.success && Array.isArray(response.appointments)) {
+        setAppointments(response.appointments)
+      } else {
+        setAppointments([])
+      }
+    } catch (error) {
+      console.error('Error al buscar las citas:', error)
+    }
+  }, [getAllAppointments])
 
   const fetchPatients = useCallback(async () => {
     try {
@@ -127,15 +42,56 @@ const PatientsScreen = () => {
     }
   }, [getAllPatients])
 
+  const getLastCompletedAppointment = (idPatient: number): Date | null => {
+    if (!appointments?.length) return null;
 
-  useEffect(() => { fetchPatients(); }, [fetchPatients]);
+    const completed = appointments.filter(a =>
+      a.idPatient === idPatient && a.isCompleted
+    );
 
+    if (completed.length === 0) return null
+
+    const mostRecent = completed.reduce((prev, curr) => {
+      return new Date(curr.date).getTime() > new Date(prev.date).getTime()
+        ? curr
+        : prev;
+    }, completed[0]);
+
+    return new Date(mostRecent.date)
+  }
+
+  const isPatientActive = (idPatient: number): boolean => {
+    const lastVisit = getLastCompletedAppointment(idPatient);
+    if (!lastVisit) return false;
+
+    const now = new Date();
+    const diffInMonths =
+      (now.getFullYear() - lastVisit.getFullYear()) * 12 +
+      (now.getMonth() - lastVisit.getMonth());
+
+    return diffInMonths < 8;
+  };
+
+
+  useEffect(() => { fetchPatients(); fetchAppointments(); }, [fetchAppointments, fetchPatients]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPatients();
+    }, [fetchPatients])
+  )
 
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = selectedFilter === 'all' || patient.status === selectedFilter;
+    const isActive = isPatientActive(patient.idPatient);
+    const matchesFilter =
+      selectedFilter === 'all' ||
+      (selectedFilter === 'active' && isActive) ||
+      (selectedFilter === 'inactive' && !isActive);
+
     return matchesSearch && matchesFilter;
   });
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -202,19 +158,19 @@ const PatientsScreen = () => {
                 <Card.Content style={styles.cardContent}>
                   <View style={styles.patientInfo}>
                     <View style={styles.patientDetails}>
-                      <Title style={styles.patientName}>
+                      <Text style={styles.patientName}>
                         {fullName || 'Nombre no disponible'}
-                      </Title>
+                      </Text>
                       <Text style={styles.patientPhone}>{patient.phone}</Text>
                     </View>
                   </View>
                   <View style={styles.patientStatus}>
                     <Chip
                       mode="outlined"
-                      style={[styles.statusChip, { borderColor: getStatusColor(patient.status) }]}
+                      style={[styles.statusChip, { borderColor: isPatientActive(patient.idPatient) ? '#4CAF50' : '#9E9E9E' }]}
                       textStyle={{ color: getStatusColor(patient.status) }}
                     >
-                      {getStatusLabel(patient.status)}
+                      {isPatientActive(patient.idPatient) ? 'Activo' : 'Inactivo'}
                     </Chip>
                   </View>
                 </Card.Content>
@@ -222,17 +178,12 @@ const PatientsScreen = () => {
                   <View style={styles.visitInfo}>
                     <Text style={styles.visitLabel}>Última visita:</Text>
                     <Text style={styles.visitDate}>
-                      {new Date(patient.lastVisit).toLocaleDateString('es-ES')}
+                      {getLastCompletedAppointment(patient.idPatient)
+                        ? getLastCompletedAppointment(patient.idPatient)!.toLocaleDateString('es-ES')
+                        : 'No registrada'
+                      }
                     </Text>
                   </View>
-                  {patient.nextAppointment && (
-                    <View style={styles.visitInfo}>
-                      <Text style={styles.visitLabel}>Próxima cita:</Text>
-                      <Text style={styles.visitDate}>
-                        {new Date(patient.nextAppointment).toLocaleDateString('es-ES')}
-                      </Text>
-                    </View>
-                  )}
                 </Card.Actions>
               </Card>
             );
