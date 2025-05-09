@@ -66,12 +66,6 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
         <View style={styles.header}>
-          <IconButton
-            icon="magnify"
-            size={24}
-            onPress={() => router.push('/search')}
-            style={styles.searchIcon}
-          />
           <View style={styles.titleContainer}>
             <Text style={styles.clinicTitle}>Truval Dental</Text>
           </View>
@@ -190,11 +184,14 @@ const styles = StyleSheet.create({
   titleContainer: {
     flex: 1,
     alignItems: 'center',
+    alignContent: 'center',
     marginRight: 48,
   },
   clinicTitle: {
     fontSize: 24,
     fontWeight: 'bold',
+    alignItems: 'center',
+    alignContent: 'center',
     color: COLORS.primary,
   },
   container: {
