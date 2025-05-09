@@ -324,7 +324,7 @@ export default function ScheduleScreen() {
             <View style={styles.actionButtons}>
               {!item.isCompleted && (
                 <Button
-                  mode="contained"
+                  icon="pencil"
                   onPress={() => handleEditPress(item)}
                   style={styles.actionButton}
                   contentStyle={styles.buttonContent}
@@ -334,7 +334,7 @@ export default function ScheduleScreen() {
               )}
               {item.isCompleted && (
                 <Button
-                  mode="contained"
+                  icon="pencil"
                   style={styles.actionButton}
                   buttonColor='#76dc9e'
                   textColor='black'
@@ -346,10 +346,8 @@ export default function ScheduleScreen() {
               )}
               {item.isCompleted && (
                 <Button
-                  mode="contained"
                   style={styles.actionButton}
-                  buttonColor='#76dc9e'
-                  textColor='black'
+                  textColor='#76dc9e'
                   contentStyle={styles.buttonContent}
                 >
                   Completada
@@ -357,11 +355,10 @@ export default function ScheduleScreen() {
               )}
               {!item.isCompleted && (
                 <Button
-                  mode="contained"
+                  icon='check'
                   onPress={() => handleCompletePress(item.idAppointment)}
                   style={styles.actionButton}
-                  buttonColor='#76dc9e'
-                  textColor='black'
+                  textColor='#76dc9e'
                   contentStyle={styles.buttonContent}
                 >
                   Completar
@@ -369,11 +366,10 @@ export default function ScheduleScreen() {
               )}
               {!item.isCompleted && (
                 <Button
-                  mode="contained-tonal"
+                  icon="delete"
+                  textColor="red"
                   onPress={() => handleDeletePress(item.idAppointment)}
                   style={styles.actionButton}
-                  buttonColor='#f1948a'
-                  textColor='black'
                   contentStyle={styles.buttonContent}
                   loading={deletingId === item.idAppointment}
                   disabled={deletingId === item.idAppointment}
@@ -383,10 +379,9 @@ export default function ScheduleScreen() {
               )}
               {item.isCompleted && (
                 <Button
-                  mode="contained-tonal"
                   style={styles.actionButton}
-                  buttonColor='#f1948a'
-                  textColor='black'
+                  icon="delete"
+                  textColor="red"
                   contentStyle={styles.buttonContent}
                   disabled={true}
                 >
@@ -535,6 +530,11 @@ const styles = StyleSheet.create({
   appointmentsContainer: {
     flex: 1,
     paddingHorizontal: 15,
+  },
+  buttonActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
   },
   appointmentItem: {
     marginBottom: 15,

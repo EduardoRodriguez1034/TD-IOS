@@ -5,16 +5,32 @@ import { useRouter, useLocalSearchParams, useFocusEffect, Stack } from 'expo-rou
 import { COLORS } from '../constants/theme';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
-import { usePatient, useClinicalRecord, useTreatment, useInformedConsent, useAppointment } from '../store/authStore';
+import { usePatient, useClinicalRecord, useTreatment, useInformedConsent, useAppointment, useNote } from '../store/authStore';
 import { EditPatientModal } from '../components/EditPatientModal'
+import { SuccessModal } from '../components/SuccessModal'
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export const options = {
     tabBarButton: () => null,
 };
+const noteTypeMapping = {
+    General: 1,
+    Alergias: 2,
+    Medicamentos: 3,
+    Observaciones: 4,
+    Otros: 5,
+};
+
+const reverseNoteTypeMapping = {
+    1: 'General',
+    2: 'Alergias',
+    3: 'Medicamentos',
+    4: 'Observaciones',
+    5: 'Otros'
+};
 
 const PatientDetailsScreen = () => {
     const router = useRouter();
-    const { idPatient } = useLocalSearchParams();
     const [patient, setPatient] = useState(null);
     const [clinical, setClinicalRecord] = useState(null);
     const [isLoadingTreatments, setIsLoadingTreatments] = useState(false);
@@ -25,33 +41,37 @@ const PatientDetailsScreen = () => {
     const [nextTreatment, setNextTreatment] = useState<string | null>(null);
     const [informedConsent, setInformedConsent] = useState<InformedConsent | null>(null);
     const [editModalVisible, setEditModalVisible] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [notes, setNotes] = useState<Array<{
-        id: string;
+        idNote: number;
         title: string;
-        type: string;
+        idNoteType: number;
         description: string;
         createdAt: string;
     }>>([]);
-    const [isEditingNotes, setIsEditingNotes] = useState(false);
-    const [newNote, setNewNote] = useState({
+
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [selectedType, setSelectedType] = useState('');
+    const [successModalVisible, setSuccessModalVisible] = useState(false);
+    const [successEditVisible, setSuccessEditVisible] = useState(false);
+    const [successDeleteVisible, setSuccessDeleteVisible] = useState(false);
+    const [idNote, setIdNote] = useState(null);
+    const [editNoteData, setEditNoteData] = useState({
         title: '',
-        type: '',
         description: '',
-        customType: ''
+        type: '',
     });
-    const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
 
     const { getAPatient, updatePatient, isLoading, isAuthenticated, error } = usePatient();
     const { getClinicalRecordByPatientId } = useClinicalRecord();
     const { getATreatment } = useTreatment();
-    const { addInformedConsent, getInformedConsent } = useInformedConsent();
+    const { getInformedConsent } = useInformedConsent();
     const { getNextAppointmentForPatient } = useAppointment();
+    const { idPatient } = useLocalSearchParams();
+    const { createNote, getNoteByPatientId, deleteNote, updateNote } = useNote();
 
-    type FileData = {
-        uri: string;
-        name: string;
-        type: string;
-    };
     type SelectedFile = {
         uri: string;
         name: string;
@@ -144,10 +164,22 @@ const PatientDetailsScreen = () => {
         }
     }, [idPatient, getInformedConsent])
 
+    const fetchPatientNotes = useCallback(async () => {
+        if (!idPatient) return;
+
+        const response = await getNoteByPatientId(idPatient);
+        if (response.success) {
+            setNotes(response.note); // nota: asegúrate que response.note sea un array de notas
+        } else {
+            console.error("Error al cargar notas del paciente:", response.error);
+        }
+    }, [idPatient, getNoteByPatientId]);
+
     useEffect(() => { fetchPatient(); }, [fetchPatient]);
     useEffect(() => { fetchClinicalRecord(); }, [fetchClinicalRecord]);
     useEffect(() => { fetchTreatmentsNames(); }, [fetchTreatmentsNames]);
     useEffect(() => { fetchConsent(); }, [fetchConsent]);
+    useEffect(() => { fetchPatientNotes(); }, [fetchPatientNotes]);
 
     useFocusEffect(
         useCallback(() => {
@@ -201,7 +233,6 @@ const PatientDetailsScreen = () => {
 
         return age;
     };
-
 
     const handleSelectFile = async () => {
         try {
@@ -279,39 +310,67 @@ const PatientDetailsScreen = () => {
         }
     };
 
-    const noteTypes = [
-        'General',
-        'Alergias',
-        'Medicamentos',
-        'Observaciones',
-        'Otros'
-    ];
+    const createNewNote = useCallback(async () => {
+        try {
+            const idNoteType = noteTypeMapping[selectedType];
+            console.log({ title, description, idNoteType, idPatient });
+            const res = await createNote(title, description, idNoteType, idPatient);
+            if (res.success) {
+                setSuccessModalVisible(true);
+                setTimeout(() => {
+                    setSuccessModalVisible(false);
+                    router.replace(`(patient)/${patient.idPatient}`)
+                }, 2000);
+            } else {
+                console.log(res)
+                Alert.alert('Error', res.error || 'No se pudo guardar la nota');
+            }
 
-    const handleTypeSelect = (type: string) => {
-        if (type === 'Otros') {
-            setShowCustomTypeInput(true);
-            setNewNote(prev => ({ ...prev, type: '' }));
-        } else {
-            setShowCustomTypeInput(false);
-            setNewNote(prev => ({ ...prev, type, customType: '' }));
+        } catch (error) {
+            Alert.alert('Error', error || 'No se pudo guardar la nota');
+        }
+    }, [title, description, selectedType, idPatient, createNote])
+
+
+    const handleDeleteNote = async (idNote: number) => {
+        if (!patient) return;
+        try {
+            const res = await deleteNote(idNote);
+            if (res.success) {
+                setDeleteModalVisible(false);
+
+                await fetchPatientNotes();
+
+                setSuccessDeleteVisible(true);
+                setTimeout(() => {
+                    setSuccessDeleteVisible(false);
+                    router.replace(`(patient)/${patient.idPatient}`)
+                }, 2000);
+
+            } else {
+                Alert.alert("Error", res.error || "No se pudo eliminar la nota");
+            }
+        } catch (error) {
+            Alert.alert("Error", error || "No se pudo eliminar la nota");
         }
     };
 
-    const handleSaveNotes = async () => {
-        if (!idPatient) return;
+    const handleUpdateNote = async ({ idNote, title, description, idNoteType }: { idNote: number, title: string, description: string, idNoteType: number }) => {
+        if (!idNote) return;
         try {
-            const noteToSave = {
-                ...newNote,
-                id: Date.now().toString(),
-                createdAt: new Date().toISOString()
-            };
-            setNotes([...notes, noteToSave]);
-            setNewNote({ title: '', type: '', description: '', customType: '' });
-            setIsEditingNotes(false);
-            setShowCustomTypeInput(false);
-            Alert.alert('Éxito', 'Nota guardada correctamente');
+            const res = await updateNote(idNote, { title, description, idNoteType: noteTypeMapping[selectedType], idPatient });
+            if (res.success) {
+
+                setSuccessEditVisible(true);
+                setTimeout(() => {
+                    setSuccessEditVisible(false);
+                    router.replace(`(patient)/${patient.idPatient}`)
+                }, 2000);
+            } else {
+                Alert.alert("Error", res.error || "No se pudo actualizar la nota");
+            }
         } catch (error) {
-            Alert.alert('Error', 'No se pudieron guardar las notas');
+
         }
     };
 
@@ -442,9 +501,8 @@ const PatientDetailsScreen = () => {
                             </View>
 
                             <Divider style={styles.divider} />
-                            {/* Notas del paciente */}
                             <View style={styles.infoSection}>
-                                <Title style={styles.sectionTitle}>Notas del Paciente</Title>
+                                <Title style={styles.sectionTitle}>Crear nota para paciente</Title>
                                 <Card style={styles.notesCard}>
                                     <Card.Content>
                                         {isEditingNotes ? (
@@ -452,42 +510,32 @@ const PatientDetailsScreen = () => {
                                                 <TextInput
                                                     mode="outlined"
                                                     label="Nombre de la nota"
-                                                    value={newNote.title}
-                                                    onChangeText={(text) => setNewNote(prev => ({ ...prev, title: text }))}
+                                                    value={title}
+                                                    onChangeText={setTitle}
                                                     style={styles.notesInput}
                                                 />
                                                 <View style={styles.dropdownContainer}>
                                                     <Text style={styles.dropdownLabel}>Tipo de nota</Text>
                                                     <View style={styles.dropdown}>
-                                                        {noteTypes.map((type) => (
+                                                        {Object.keys(noteTypeMapping).map((type) => (
                                                             <Chip
                                                                 key={type}
-                                                                selected={newNote.type === type || (type === 'Otros' && showCustomTypeInput)}
-                                                                onPress={() => handleTypeSelect(type)}
+                                                                selected={selectedType === type}
+                                                                onPress={() => setSelectedType(type)}
                                                                 style={styles.typeChip}
-                                                                mode={(newNote.type === type || (type === 'Otros' && showCustomTypeInput)) ? "flat" : "outlined"}
                                                             >
                                                                 {type}
                                                             </Chip>
                                                         ))}
                                                     </View>
-                                                    {showCustomTypeInput && (
-                                                        <TextInput
-                                                            mode="outlined"
-                                                            label="Especifique el tipo de nota"
-                                                            value={newNote.customType}
-                                                            onChangeText={(text) => setNewNote(prev => ({ ...prev, type: text, customType: text }))}
-                                                            style={[styles.notesInput, styles.customTypeInput]}
-                                                        />
-                                                    )}
                                                 </View>
                                                 <TextInput
-                                                    mode="outlined"
                                                     label="Descripción"
+                                                    value={description}
+                                                    onChangeText={setDescription}
                                                     multiline
                                                     numberOfLines={4}
-                                                    value={newNote.description}
-                                                    onChangeText={(text) => setNewNote(prev => ({ ...prev, description: text }))}
+                                                    mode="outlined"
                                                     style={styles.notesInput}
                                                 />
                                                 <View style={styles.notesActions}>
@@ -495,18 +543,31 @@ const PatientDetailsScreen = () => {
                                                         mode="outlined"
                                                         onPress={() => {
                                                             setIsEditingNotes(false);
-                                                            setNewNote({ title: '', type: '', description: '', customType: '' });
-                                                            setShowCustomTypeInput(false);
                                                         }}
                                                         style={styles.notesButton}
                                                     >
                                                         Cancelar
                                                     </Button>
                                                     <Button
-                                                        mode="contained"
-                                                        onPress={handleSaveNotes}
+                                                        mode="outlined"
+                                                        onPress={async () => {
+                                                            if (typeof idNote === 'number') {
+                                                                console.log("idNote:", idNote);
+                                                                console.log("selectedType:", selectedType);
+                                                                await handleUpdateNote({ idNote, title, description, idNoteType: noteTypeMapping[selectedType] });
+                                                                setIdNote(null); // ← solo después de update
+                                                            } else {
+                                                                await createNewNote();
+                                                            }
+
+                                                            // Limpiar estado después de éxito
+                                                            setTitle('');
+                                                            setDescription('');
+                                                            setSelectedType('');
+                                                            setIsEditingNotes(false);
+                                                        }}
                                                         style={styles.notesButton}
-                                                        disabled={!newNote.title || (!newNote.type && !newNote.customType) || !newNote.description}
+                                                        disabled={!title || !description}
                                                     >
                                                         Guardar
                                                     </Button>
@@ -516,24 +577,45 @@ const PatientDetailsScreen = () => {
                                             <>
                                                 {notes.length > 0 ? (
                                                     notes.map((note) => (
-                                                        <Card key={note.id} style={styles.noteItem}>
+                                                        <Card key={note.idNote} style={styles.noteItem}>
                                                             <Card.Content>
                                                                 <View style={styles.noteHeader}>
                                                                     <Title style={styles.noteTitle}>{note.title}</Title>
                                                                     <Chip mode="outlined" style={styles.noteType}>
-                                                                        {note.type}
+                                                                        {reverseNoteTypeMapping[note.idNoteType] || 'Desconocido'}
                                                                     </Chip>
                                                                 </View>
                                                                 <Text style={styles.noteDescription}>{note.description}</Text>
-                                                                <Text style={styles.noteDate}>
-                                                                    {new Date(note.createdAt).toLocaleDateString('es-ES', {
-                                                                        year: 'numeric',
-                                                                        month: 'long',
-                                                                        day: 'numeric',
-                                                                        hour: '2-digit',
-                                                                        minute: '2-digit'
-                                                                    })}
-                                                                </Text>
+                                                                <View style={styles.notesActions}>
+                                                                    <Button
+                                                                        icon="pencil"
+                                                                        onPress={() => {
+                                                                            setEditNoteData({
+                                                                                title: note.title,
+                                                                                description: note.description,
+                                                                                type: reverseNoteTypeMapping[note.idNoteType]
+                                                                            });
+                                                                            setTitle(note.title);
+                                                                            setDescription(note.description);
+                                                                            setSelectedType(reverseNoteTypeMapping[note.idNoteType]);
+                                                                            console.log(note.idNote)
+                                                                            setIdNote(note.idNote);
+                                                                            setIsEditingNotes(true);
+                                                                        }}
+                                                                    >
+                                                                        Editar
+                                                                    </Button>
+                                                                    <Button
+                                                                        icon="delete"
+                                                                        textColor="red"
+                                                                        onPress={() => {
+                                                                            setIdNote(note.idNote);
+                                                                            setDeleteModalVisible(true)
+                                                                        }}
+                                                                    >
+                                                                        Eliminar
+                                                                    </Button>
+                                                                </View>
                                                             </Card.Content>
                                                         </Card>
                                                     ))
@@ -606,7 +688,7 @@ const PatientDetailsScreen = () => {
                                 ) : (
                                     <>
                                         <Button
-                                            mode="contained"
+                                            textColor='black'
                                             onPress={handleSelectFile}
                                             icon="file-upload"
                                         >
@@ -620,7 +702,7 @@ const PatientDetailsScreen = () => {
                                         )}
 
                                         <Button
-                                            mode="contained"
+                                            textColor='white'
                                             onPress={handleUploadFile}
                                             disabled={!file}
                                             style={styles.submitButton}
@@ -658,6 +740,48 @@ const PatientDetailsScreen = () => {
                 }}
                 onSave={handleSavePatient}
                 onCancel={() => setEditModalVisible(false)}
+            />
+
+            <ConfirmModal
+                visible={deleteModalVisible}
+                title="Eliminar Cita"
+                message="¿Estás seguro de que deseas eliminar esta cita?"
+                onConfirm={() => handleDeleteNote(idNote)}
+                onCancel={() => setDeleteModalVisible(false)}
+            />
+
+            <SuccessModal
+                visible={successModalVisible}
+                title="Nota creada exitosamente"
+                message="La nota ha sido creada en el sistema."
+                buttonText="Volver al listado"
+                onDismiss={() => {
+                    setSuccessModalVisible(false);
+                    router.replace(`(patient)/${patient.idPatient}`)
+                }}
+            />
+
+
+            <SuccessModal
+                visible={successDeleteVisible}
+                title="Nota eliminada exitosamente"
+                message="La nota ha sido eliminada del sistema."
+                buttonText="Volver al listado"
+                onDismiss={() => {
+                    setSuccessModalVisible(false);
+                    router.replace(`(patient)/${patient.idPatient}`)
+                }}
+            />
+
+            <SuccessModal
+                visible={successEditVisible}
+                title="Nota editada exitosamente"
+                message="La nota ha sido editada en el sistema exitosamente."
+                buttonText="Volver al listado"
+                onDismiss={() => {
+                    setSuccessModalVisible(false);
+                    router.replace(`(patient)/${patient.idPatient}`)
+                }}
             />
         </SafeAreaView >
     );

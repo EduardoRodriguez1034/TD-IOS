@@ -612,7 +612,31 @@ export const useNote = create((set) => ({
             set({ isLoading: false });
         }
     },
-    updateNote: async (idNote) => {
+    getNoteByPatientId: async (idPatient) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch(`https://truval-dental.ddns.net:8443/note/patient/${idPatient}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
+            const data = await response.json();
+            console.log("Response data:", data);
+            if (!response.ok) {
+                set({ error: data.message });
+                return { isLoading: false, success: false, error: data.message };
+            }
+
+            return { success: true, isLoading: false, isAuthenticated: true, note: data.note };
+        } catch (error) {
+            set({ isLoading: false, error: error.message });
+            console.error("Error al buscar tipo de nota:", error);
+            return { isLoading: false, success: false, error: error.message };
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    updateNote: async (idNote, { title, description, idNoteType, idPatient }) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/note/${idNote}`, {
@@ -645,18 +669,50 @@ export const useNote = create((set) => ({
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
             });
-            const data = await response.json();
-            console.log("Response data:", data);
-            if (!response.ok) {
-                set({ error: data.message });
-                return { isLoading: false, success: false, error: data.message };
+            // 1. Verificación explícita para 204
+            if (response.status === 204) {
+                return {
+                    success: true,
+                    isLoading: false,
+                    error: null
+                };
             }
 
-            return { success: true, isLoading: false, isAuthenticated: true, note: data.note };
+            // 2. Solo intentar leer respuesta si no es 204
+            if (!response.ok) {
+                // Manejo de errores con verificación de contenido
+                const text = await response.text();
+                let errorMessage = 'Error al eliminar cita';
+
+                try {
+                    const errorData = text ? JSON.parse(text) : {};
+                    errorMessage = errorData.message || errorMessage;
+                } catch {
+                    // Si no es JSON válido, usa el texto plano o mensaje por defecto
+                    errorMessage = text || errorMessage;
+                }
+
+                return {
+                    success: false,
+                    isLoading: false,
+                    error: errorMessage
+                };
+            }
+
+            // 3. Para otros códigos de éxito (no 204)
+            return {
+                success: true,
+                isLoading: false,
+                error: null
+            };
+
         } catch (error) {
-            set({ isLoading: false, error: error.message });
-            console.error("Error al eliminar nota:", error);
-            return { isLoading: false, success: false, error: error.message };
+            console.error("Error en deleteAppointment:", error);
+            return {
+                isLoading: false,
+                success: false,
+                error: error.message || 'Error de conexión'
+            };
         } finally {
             set({ isLoading: false });
         }
@@ -702,7 +758,6 @@ export const useNoteType = create((set) => ({
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ noteType, description }),
             });
             const data = await response.json();
             console.log("Response data:", data);
@@ -727,7 +782,6 @@ export const useNoteType = create((set) => ({
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ noteType, description }),
             });
             const data = await response.json();
             console.log("Response data:", data);
