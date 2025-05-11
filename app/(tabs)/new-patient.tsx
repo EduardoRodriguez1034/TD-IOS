@@ -1,10 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { Text, TextInput, Button, Card, Title } from 'react-native-paper';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../constants/theme';
-import { usePatient } from '../store/authStore';
+import { useAuthStore, usePatient } from '../store/authStore';
 import { SuccessModal } from '../components/SuccessModal';
 
 const NewPatientScreen = () => {
@@ -18,7 +18,20 @@ const NewPatientScreen = () => {
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const { createPatient, error, isLoading, isAuthenticated } = usePatient();
+  const { createPatient, error, isLoading } = usePatient();
+
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si no está logueado, redirige al login
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)" />;
+  }
 
   const resetForm = () => {
     setName('');
@@ -50,7 +63,6 @@ const NewPatientScreen = () => {
       const result = await createPatient(name, lastName, surName, sex, phone, birthDate);
 
       if (!result.success) {
-        console.log('Error:', result.message);
         return;
       } else {
         resetForm();
@@ -178,7 +190,7 @@ const NewPatientScreen = () => {
                   style={styles.button}
                   contentStyle={styles.buttonContent}
                 >
-                  {isLoading ? 'Cargando...' : 'Cancelar'}
+                {isLoading ? 'Cargando...' : 'Cancelar'}
                 </Button>
                 {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
                 <Button

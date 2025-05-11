@@ -1,9 +1,10 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 
 const customTheme = {
   ...DefaultTheme,
@@ -17,6 +18,8 @@ const customTheme = {
 };
 
 export default function TabLayout() {
+  const router = useRouter()
+
   return (
     <PaperProvider theme={customTheme}>
       <Tabs

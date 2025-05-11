@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { Card, Title, Paragraph, Button, IconButton, Avatar } from 'react-native-paper';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
-import { useAppointment, usePatient } from '../store/authStore';
+import { useAppointment, useAuthStore, usePatient } from '../store/authStore';
 import { scheduleDailyReminder } from '../utils/notifications';
 
 const HomeScreen = () => {
@@ -18,6 +18,19 @@ const HomeScreen = () => {
 
   const { getAppointmentByDate, getPendingAppointments, getUnconfirmedAppointmentsThisWeek } = useAppointment();
 
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si no está logueado, redirige al login
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)" />;
+  }
+
   const todayRange = useMemo(() => {
     const now = new Date();
 
@@ -28,10 +41,8 @@ const HomeScreen = () => {
     localEnd.setHours(23, 59, 59, 999);
 
     // ¡Conviértelos directamente a UTC con .toISOString()!
-    const startUTC = localStart.toISOString(); // 07:00 UTC para Tijuana
-    const endUTC = localEnd.toISOString();     // 06:59:59 UTC del día siguiente
-    console.log(startUTC)
-    console.log(endUTC)
+    const startUTC = localStart.toISOString();
+    const endUTC = localEnd.toISOString();
     return { startUTC, endUTC };
   }, []);
 
@@ -77,7 +88,6 @@ const HomeScreen = () => {
     setLoading(true)
     try {
       const response = await getAppointmentByDate(todayRange.startUTC, todayRange.endUTC);
-      console.log('Citas recibidas:', response.appointments);
       if (response.success) {
         setAppointments(response.appointments)
       } else {
@@ -96,7 +106,7 @@ const HomeScreen = () => {
       fetchToday();
       fetchNewPatients();
       fetchPendingAppointments();
-      fetchUnconfirmedAppointmentsThisWeek();
+      fetchUnconfirmedAppointmentsThisWeek()
       fetchTomorrowAppointments();
     }, [fetchToday, fetchNewPatients, fetchPendingAppointments, fetchUnconfirmedAppointmentsThisWeek, fetchTomorrowAppointments])
   )

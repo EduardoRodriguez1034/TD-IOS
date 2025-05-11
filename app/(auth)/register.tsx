@@ -1,26 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, Title } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 
 
 const RegisterScreen = () => {
   const router = useRouter();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
-  const { signup, isLoading, error } = useAuthStore();
+  const { signup, checkAuth, isLoading, error } = useAuthStore();
+
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si ya está logueado, redirige a la home
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
       const result = await signup(username, email, password);
       if (!result.success) {
-        console.log("Error:", result.message);
         return;
       } else {
         router.replace('/verify-code');
@@ -65,15 +76,15 @@ const RegisterScreen = () => {
         secureTextEntry
       />
       {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
-        <Button
-          mode="contained"
-          onPress={handleRegister}
-          style={styles.registerButton}
-          labelStyle={styles.buttonLabel}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Cargando...' : 'Registrarse'}
-        </Button>
+      <Button
+        mode="contained"
+        onPress={handleRegister}
+        style={styles.registerButton}
+        labelStyle={styles.buttonLabel}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Cargando...' : 'Registrarse'}
+      </Button>
     </View>
   );
 };

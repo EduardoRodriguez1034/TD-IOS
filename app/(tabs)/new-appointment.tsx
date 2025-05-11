@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Text, TextInput, Button, Card, Title, Menu } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { usePatient, useAppointment, useTreatment, useAuthStore } from '../store/authStore';
 import { SuccessModal } from '../components/SuccessModal';
@@ -23,7 +23,20 @@ const NewAppointmentScreen = () => {
   const { getAllUsers } = useAuthStore();
   const { getAllTreatments } = useTreatment();
   const { getAllPatients } = usePatient();
-  const { createAppointment, isAuthenticated, isLoading, error } = useAppointment();
+  const { createAppointment, isLoading, error } = useAppointment();
+
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si no está logueado, redirige al login
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)" />;
+  }
 
   const fetchTreatments = useCallback(async () => {
     try {

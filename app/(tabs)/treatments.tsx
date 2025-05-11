@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { Text, TextInput, Button, Card, Title } from 'react-native-paper';
 import { COLORS } from '../constants/theme';
-import { useTreatment } from '../store/authStore';
-import { useRouter } from 'expo-router';
+import { useAuthStore, useTreatment } from '../store/authStore';
+import { Redirect, useRouter } from 'expo-router';
 import { SuccessModal } from '../components/SuccessModal';
 
 const CreateTreatment = () => {
@@ -15,11 +15,24 @@ const CreateTreatment = () => {
 
     const { createTreatment } = useTreatment();
 
+    const { checkAuth } = useAuthStore();
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth])
+
+    const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+    // Si no está logueado, redirige al login
+    if (!isAuthenticated) {
+        return <Redirect href="/(auth)" />;
+    }
+
     const resetForm = () => {
         setTreatmentType('');
         setPrice('');
         setDescription('');
-      };
+    };
 
     const handleSubmit = async () => {
         if (!treatmentType || !price) {

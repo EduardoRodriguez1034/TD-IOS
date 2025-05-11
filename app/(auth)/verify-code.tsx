@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, Redirect } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import OTPInput from '../components/OTPInput';
@@ -15,14 +15,24 @@ const VerifyCodeScreen = () => {
   const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
 
-  const { verifyEmail, error, isLoading } = useAuthStore();
+  const { verifyEmail, checkAuth, error, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si ya está logueado, redirige a la home
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const handleSubmit = async (e) => {
     try {
       const result = await verifyEmail(code.join(''));
 
       if (!result.success) {
-        console.log('Error:', result.message);
         return;
       } else {
         setSuccessModalVisible(true);

@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
-import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams, Redirect } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
 import { SuccessModal } from '../../components/SuccessModal';
@@ -18,7 +18,20 @@ const NewPasswordScreen = () => {
 
 
     const { token } = useLocalSearchParams();
-    const { resetPassword, isLoading, error } = useAuthStore();
+    const { checkAuth, resetPassword, isLoading, error } = useAuthStore();
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth])
+    
+    const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+
+    // Si ya está logueado, redirige a la home
+    if (isAuthenticated) {
+        return <Redirect href="/(tabs)" />;
+    }
+
 
 
     const validatePassword = (pass: string) => {
@@ -41,7 +54,7 @@ const NewPasswordScreen = () => {
         return errors.join(' • ');
     };
 
-    const handleResetPassword =  async (e) => {
+    const handleResetPassword = async (e) => {
         try {
             const result = await resetPassword(token, password);
             if (result.success && validatePassword(password) && password === confirmPassword) {
@@ -51,7 +64,6 @@ const NewPasswordScreen = () => {
                     router.replace('/login');
                 }, 5000);
             } else {
-                console.log('Error:', result.message);
                 return;
             }
 

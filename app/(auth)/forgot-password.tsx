@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { Stack } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
@@ -12,6 +12,17 @@ const ForgotPasswordScreen = () => {
 
   const [email, setEmail] = useState('');
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const { checkAuth } = useAuthStore();
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  // Si ya está logueado, redirige a la home
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const { forgotPassword, isLoading, error } = useAuthStore();
 
@@ -22,7 +33,6 @@ const ForgotPasswordScreen = () => {
         const result = await forgotPassword(email);
 
         if (!result.success) {
-          console.log('Error:', result.message);
           return;
         } else {
           setSuccessModalVisible(true);

@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { PaperProvider } from 'react-native-paper';
+import { ActivityIndicator, PaperProvider } from 'react-native-paper';
 import { theme } from './constants/theme';
 import { useFonts } from 'expo-font'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import * as Notifications from 'expo-notifications';
+//import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from './store/authStore';
 
-Notifications.setNotificationHandler({
+/*Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
@@ -15,11 +16,15 @@ Notifications.setNotificationHandler({
     shouldShowBanner: true,
     shouldShowList: true,
   }),
-});
+});*/
 
 export default function RootLayout() {
   const router = useRouter();
+  const { checkAuth, isCheckingAuth } = useAuthStore()
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
 
+  // Al montar, comprobamos la cookie/token
+  useEffect(() => { checkAuth() }, [checkAuth])
   const [fontsLoaded] = useFonts({
     ...MaterialCommunityIcons.font,
   })
@@ -28,7 +33,7 @@ export default function RootLayout() {
     return null;
   }
 
-  useEffect(() => {
+  /*useEffect(() => {
 
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
       const screen = response.notification.request.content.data.screen;
@@ -37,29 +42,26 @@ export default function RootLayout() {
       }
     });
     return () => subscription.remove();
-  }, [])
+  }, [])*/
+  if (isCheckingAuth) {
+    return <ActivityIndicator style={{ flex:1, justifyContent:'center' }} />
+  }
+
   return (
     <PaperProvider theme={theme}>
-      <Stack>
-        <Stack.Screen
-          name="(auth)"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(patient)"
-          options={{
-            headerShown: false,
-          }}
-        />
+      <Stack screenOptions={{ headerShown: false }}>
+        {!isAuthenticated ? (
+          <>
+            <Stack.Screen name="(auth)"/>
+            <Stack.Screen name="/index.tsx"/>
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="(tabs)"/>
+            <Stack.Screen name="(patient)"/>
+          </>
+        )}
       </Stack>
     </PaperProvider>
-  );
+  )
 }

@@ -25,7 +25,6 @@ export const useAuthStore = create((set) => ({
             });
 
             const data = await response.json();
-            console.log(data);
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -52,7 +51,6 @@ export const useAuthStore = create((set) => ({
                 body: JSON.stringify({ code }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -81,7 +79,6 @@ export const useAuthStore = create((set) => ({
                 }),
             });
             const data = await response.json();
-            console.log(data);
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -108,7 +105,6 @@ export const useAuthStore = create((set) => ({
                 body: JSON.stringify({ password }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -136,7 +132,7 @@ export const useAuthStore = create((set) => ({
                 body: JSON.stringify({ email, password }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -161,7 +157,7 @@ export const useAuthStore = create((set) => ({
                 credentials: 'include'
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -171,6 +167,34 @@ export const useAuthStore = create((set) => ({
         } catch (error) {
             set({ isLoading: false, error: error.message });
             console.error("Error al cerrar sesión:", error);
+            return { isLoading: false, success: false, error: error.message };
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    checkAuth: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch(`https://truval-dental.ddns.net:8443/check-auth`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
+            const data = await response.json();
+
+            if (!data.user) {
+                set({ isLoading: false, isCheckingAuth: false, isAuthenticated: false });
+                return { success: true, isLoading: false, isCheckingAuth: false, isAuthenticated: true };
+
+            } else {
+                set({ isLoading: false, isCheckingAuth: false, isAuthenticated: true });
+                return { success: true, isLoading: false, isCheckingAuth: false, isAuthenticated: true };
+            }
+
+        } catch (error) {
+            set({ isLoading: false, error: error.message });
+            console.error("Error al obtener usuarios:", error);
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
@@ -213,7 +237,6 @@ export const useAuthStore = create((set) => ({
                 body: JSON.stringify({ username, email, password }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -239,7 +262,6 @@ export const useAuthStore = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -274,7 +296,6 @@ export const usePatient = create((set) => ({
                 body: JSON.stringify({ name, lastName, surName, sex, phone, birthDate }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
 
             if (!response.ok) {
                 set({ error: data.message });
@@ -299,7 +320,7 @@ export const usePatient = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -352,7 +373,7 @@ export const usePatient = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -377,7 +398,7 @@ export const usePatient = create((set) => ({
                 body: JSON.stringify({ name, lastName, surName, sex, phone, birthDate }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -445,7 +466,7 @@ export const useTreatment = create((set) => ({
                 }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -492,7 +513,7 @@ export const useTreatment = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -517,7 +538,7 @@ export const useTreatment = create((set) => ({
                 body: JSON.stringify({ treatmentType, description, price }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -542,7 +563,7 @@ export const useTreatment = create((set) => ({
                 body: JSON.stringify({ idTreatment }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -576,7 +597,7 @@ export const useNote = create((set) => ({
                 body: JSON.stringify({ title, description, idNoteType, idPatient }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -598,10 +619,9 @@ export const useNote = create((set) => ({
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -623,10 +643,9 @@ export const useNote = create((set) => ({
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ title, description, idNoteType, idPatient }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -650,7 +669,7 @@ export const useNote = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -675,7 +694,7 @@ export const useNote = create((set) => ({
                 body: JSON.stringify({ title, description, idNoteType, idPatient }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -765,7 +784,7 @@ export const useNoteType = create((set) => ({
                 body: JSON.stringify({ noteType, description }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -789,7 +808,7 @@ export const useNoteType = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -813,7 +832,7 @@ export const useNoteType = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -838,7 +857,7 @@ export const useNoteType = create((set) => ({
                 body: JSON.stringify({ noteType, description }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -862,7 +881,7 @@ export const useNoteType = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -901,7 +920,7 @@ export const useAppointment = create((set) => ({
                 }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -925,7 +944,7 @@ export const useAppointment = create((set) => ({
                 credentials: 'include'
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -949,7 +968,7 @@ export const useAppointment = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -978,7 +997,7 @@ export const useAppointment = create((set) => ({
                 throw new Error(data.message || 'Error al obtener citas');
             }
 
-            // ✅ Filtramos las que no están completadas
+            
             const pendientes = data.appointments.filter((a) => a.isCompleted === false);
 
             return { success: true, count: pendientes.length };
@@ -1016,38 +1035,34 @@ export const useAppointment = create((set) => ({
     getUnconfirmedAppointmentsThisWeek: async () => {
         try {
             const today = new Date();
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(today.getDate() - today.getDay()); // Domingo
-            startOfWeek.setHours(0, 0, 0, 0);
-
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(endOfWeek.getDate() + 6); // Sábado
-            endOfWeek.setHours(23, 59, 59, 999);
-
-            const response = await fetch('https://truval-dental.ddns.net:8443/appointments', {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
+            const dow = today.getDay(); // 0 = dom … 6 = sáb
+            const weekDates = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date(today);
+                d.setDate(today.getDate() - dow + i);
+                return d.toISOString().slice(0, 10);
             });
 
+            // 2) Trae TODAS las citas (GET sin body)
+            const response = await fetch(
+                'https://truval-dental.ddns.net:8443/appointments',
+                { credentials: 'include' }
+            );
             const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener citas');
-            }
+            const allAppointments = Array.isArray(data.appointments)
+                ? data.appointments
+                : [];
 
-            const citasPendientes = data.appointments.filter(a => {
-                const date = new Date(a.date);
-                return (
-                    !a.isConfirmed &&
-                    date >= startOfWeek &&
-                    date <= endOfWeek
-                );
+            // —— 4) Filtrado robusto —— 
+            const pendientes = allAppointments.filter(a => {
+                const dateOnly = a.date.slice(0, 10);
+                const confirmed = Boolean(a.isConfirmed);    
+                return !confirmed && weekDates.includes(dateOnly);
             });
 
-            return { success: true, count: citasPendientes.length };
+            return { success: true, count: pendientes.length }; 
         } catch (error) {
-            console.error('Error al obtener confirmaciones pendientes:', error);
             return { success: false, count: 0 };
         }
     },
@@ -1060,7 +1075,7 @@ export const useAppointment = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1069,7 +1084,6 @@ export const useAppointment = create((set) => ({
             return { success: true, isLoading: false, isAuthenticated: true, appointment: data.appointment };
         } catch (error) {
             set({ isLoading: false, error: error.message });
-            console.error("Error al buscar citas por paciente:", error);
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
@@ -1084,7 +1098,7 @@ export const useAppointment = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1093,7 +1107,6 @@ export const useAppointment = create((set) => ({
             return { success: true, isLoading: false, isAuthenticated: true, appointment: data.appointment };
         } catch (error) {
             set({ isLoading: false, error: error.message });
-            console.error("Error al buscar citas por dentista:", error);
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
@@ -1126,7 +1139,6 @@ export const useAppointment = create((set) => ({
                 message: data.message
             };
         } catch (error) {
-            console.error("Error al buscar citas:", error);
             set({ error: error.message });
             return {
                 success: false,
@@ -1146,7 +1158,7 @@ export const useAppointment = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1155,7 +1167,6 @@ export const useAppointment = create((set) => ({
             return { success: true, isLoading: false, isAuthenticated: true, appointment: data.appointment };
         } catch (error) {
             set({ isLoading: false, error: error.message });
-            console.error("Error al buscar citas por rango de fechas:", error);
             return { isLoading: false, success: false, error: error.message };
         } finally {
             set({ isLoading: false });
@@ -1284,7 +1295,7 @@ export const useClinicalRecord = create((set) => ({
                 body: JSON.stringify({ treatmentsDone, idPatient }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1308,7 +1319,7 @@ export const useClinicalRecord = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1332,7 +1343,7 @@ export const useClinicalRecord = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1356,7 +1367,7 @@ export const useClinicalRecord = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1381,7 +1392,7 @@ export const useClinicalRecord = create((set) => ({
                 body: JSON.stringify({ treatmentsDone, idPatient }),
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1405,7 +1416,7 @@ export const useClinicalRecord = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
+
             if (!response.ok) {
                 set({ error: data.message });
                 return { isLoading: false, success: false, error: data.message };
@@ -1438,10 +1449,8 @@ export const useInformedConsent = create((set) => ({
                 credentials: 'include',
             });
             const data = await response.json();
-            console.log("Response data:", data);
 
             if (!response.ok) {
-                // si el status no es 2xx, guardamos el error y salimos
                 set({ error: data.message, isLoading: false });
                 return { success: false, error: data.message };
             }

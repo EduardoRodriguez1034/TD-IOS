@@ -3,12 +3,12 @@ import { View, Platform, StyleSheet, FlatList, ScrollView } from 'react-native'
 import { Calendar } from 'react-native-calendars'
 import { Card, Avatar, ActivityIndicator, Text, Button, Chip } from 'react-native-paper'
 import { COLORS } from '../constants/theme';
-import { useAppointment, usePatient, useTreatment } from '../store/authStore'
+import { useAppointment, useAuthStore, usePatient, useTreatment } from '../store/authStore'
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Alert } from 'react-native'
 import { EditAppointmentModal } from '../components/EditAppointmentModal'
 import { SuccessModal } from '../components/SuccessModal'
-import { useFocusEffect } from 'expo-router';
+import { Redirect, useFocusEffect } from 'expo-router';
 
 interface RawAppointment {
   idAppointment: number
@@ -80,6 +80,18 @@ export default function ScheduleScreen() {
   const { getAllAppointments, completeAppointment, updateAppointment, deleteAppointment, isLoading: loadingApts } = useAppointment()
   const { getAllPatients } = usePatient()
   const { getAllTreatments } = useTreatment()
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si no está logueado, redirige al login
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)" />;
+  }
 
   const now = new Date()
   const today = [
@@ -196,6 +208,7 @@ export default function ScheduleScreen() {
       await updateAppointment(currentAppointment.idAppointment, { date, idTreatment, isConfirmed });
 
       setEditModalVisible(false);
+      loadAppointments();
 
       setSuccessModalVisible(true);
       setTimeout(() => {

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, Dimensions } from 'react-native';
 import { Card, IconButton, Searchbar, FAB, Chip, Menu, Divider } from 'react-native-paper';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
-import { usePatient, useAppointment } from '../store/authStore';
+import { usePatient, useAppointment, useAuthStore } from '../store/authStore';
 
 const PatientsScreen = () => {
   const router = useRouter();
@@ -14,7 +14,20 @@ const PatientsScreen = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
 
   const { getAllAppointments } = useAppointment();
-  const { getAllPatients, error, isAuthenticated } = usePatient();
+  const { getAllPatients, error } = usePatient();
+
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si no está logueado, redirige al login
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)" />;
+  }
 
   const fetchAppointments = useCallback(async () => {
     try {

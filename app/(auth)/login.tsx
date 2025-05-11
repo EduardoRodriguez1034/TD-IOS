@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, Title } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 
@@ -12,14 +12,24 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
 
-  const { login } = useAuthStore();
+  const { login, checkAuth, error } = useAuthStore();
+
+  useEffect(()=>{
+    checkAuth()
+  }, [checkAuth])
+
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si ya está logueado, redirige a la home
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const result = await login(email, password);
       if (!result.success) {
-        console.log('Error:', result.message);
         return;
       } else {
         router.replace('/(tabs)');
@@ -67,7 +77,7 @@ const LoginScreen = () => {
             />
           }
         />
-
+        {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
         <Button
           mode="text"
           onPress={handleForgotPassword}

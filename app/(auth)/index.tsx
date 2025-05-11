@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Button } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Title } from 'react-native-paper';
+import { useAuthStore } from '../store/authStore';
 
 const HomePage = () => {
   const router = useRouter();
+  const { checkAuth } = useAuthStore();
+  
+    useEffect(() => {
+    checkAuth();
+  }, [checkAuth])
 
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+  // Si ya está logueado, redirige a la home
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>

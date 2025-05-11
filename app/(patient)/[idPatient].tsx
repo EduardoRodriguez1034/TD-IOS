@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator, Linking, Alert, Modal } from 'react-native';
 import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button, TextInput, Portal } from 'react-native-paper';
-import { useRouter, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect, Stack, Redirect } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
-import { usePatient, useClinicalRecord, useTreatment, useInformedConsent, useAppointment, useNote } from '../store/authStore';
+import { usePatient, useClinicalRecord, useTreatment, useInformedConsent, useAppointment, useNote, useAuthStore } from '../store/authStore';
 import { EditPatientModal } from '../components/EditPatientModal'
 import { SuccessModal } from '../components/SuccessModal'
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -64,13 +64,26 @@ const PatientDetailsScreen = () => {
         type: '',
     });
 
-    const { getAPatient, updatePatient, isLoading, isAuthenticated, error } = usePatient();
+    const { getAPatient, updatePatient, isLoading, error } = usePatient();
     const { getClinicalRecordByPatientId } = useClinicalRecord();
     const { getATreatment } = useTreatment();
     const { getInformedConsent } = useInformedConsent();
     const { getNextAppointmentForPatient } = useAppointment();
     const { idPatient } = useLocalSearchParams();
     const { createNote, getNoteByPatientId, deleteNote, updateNote } = useNote();
+
+    const { checkAuth } = useAuthStore();
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth])
+
+    const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
+    // Si no está logueado, redirige al login
+    if (!isAuthenticated) {
+        return <Redirect href="/(auth)" />;
+    }
 
     type SelectedFile = {
         uri: string;
@@ -154,9 +167,7 @@ const PatientDetailsScreen = () => {
         try {
             if (!idPatient) return;
             const response = await getInformedConsent(idPatient);
-            console.log('🖨 Consent response:', response);
             if (response.success && response.consent) {
-                // renombramos search → filename/url
                 setInformedConsent(response.consent);
             }
         } catch (error) {
@@ -313,7 +324,6 @@ const PatientDetailsScreen = () => {
     const createNewNote = useCallback(async () => {
         try {
             const idNoteType = noteTypeMapping[selectedType];
-            console.log({ title, description, idNoteType, idPatient });
             const res = await createNote(title, description, idNoteType, idPatient);
             if (res.success) {
                 setSuccessModalVisible(true);
@@ -322,7 +332,6 @@ const PatientDetailsScreen = () => {
                     router.replace(`(patient)/${patient.idPatient}`)
                 }, 2000);
             } else {
-                console.log(res)
                 Alert.alert('Error', res.error || 'No se pudo guardar la nota');
             }
 
@@ -402,6 +411,7 @@ const PatientDetailsScreen = () => {
                     headerShadowVisible: false,
                 }}
             />
+            {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
             <View style={styles.mainContainer}>
                 <View style={styles.header}>
                     <View style={styles.titleContainer}>
@@ -552,8 +562,6 @@ const PatientDetailsScreen = () => {
                                                         mode="outlined"
                                                         onPress={async () => {
                                                             if (typeof idNote === 'number') {
-                                                                console.log("idNote:", idNote);
-                                                                console.log("selectedType:", selectedType);
                                                                 await handleUpdateNote({ idNote, title, description, idNoteType: noteTypeMapping[selectedType] });
                                                                 setIdNote(null); // ← solo después de update
                                                             } else {
@@ -598,7 +606,6 @@ const PatientDetailsScreen = () => {
                                                                             setTitle(note.title);
                                                                             setDescription(note.description);
                                                                             setSelectedType(reverseNoteTypeMapping[note.idNoteType]);
-                                                                            console.log(note.idNote)
                                                                             setIdNote(note.idNote);
                                                                             setIsEditingNotes(true);
                                                                         }}
