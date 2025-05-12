@@ -4,7 +4,7 @@ import { ActivityIndicator, PaperProvider } from 'react-native-paper';
 import { theme } from './constants/theme';
 import { useFonts } from 'expo-font'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-//import * as Notifications from 'expo-notifications';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from './store/authStore';
 
@@ -20,7 +20,7 @@ import { useAuthStore } from './store/authStore';
 
 export default function RootLayout() {
   const router = useRouter();
-  const { checkAuth, isCheckingAuth } = useAuthStore()
+  const { checkAuth } = useAuthStore()
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
 
   // Al montar, comprobamos la cookie/token
@@ -38,27 +38,24 @@ export default function RootLayout() {
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
       const screen = response.notification.request.content.data.screen;
       if (screen === 'HomeScreen') {
-        router.push('/');
+        router.push('/(tabs)');
       }
     });
     return () => subscription.remove();
   }, [])*/
-  if (isCheckingAuth) {
-    return <ActivityIndicator style={{ flex:1, justifyContent:'center' }} />
-  }
 
   return (
     <PaperProvider theme={theme}>
       <Stack screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <>
-            <Stack.Screen name="(auth)"/>
-            <Stack.Screen name="/index.tsx"/>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="/index.tsx" />
           </>
         ) : (
           <>
-            <Stack.Screen name="(tabs)"/>
-            <Stack.Screen name="(patient)"/>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(patient)" />
           </>
         )}
       </Stack>
