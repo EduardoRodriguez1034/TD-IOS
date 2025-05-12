@@ -1,64 +1,71 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { ActivityIndicator, PaperProvider } from 'react-native-paper';
-import { theme } from './constants/theme';
-import { useFonts } from 'expo-font'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
+import messaging from '@react-native-firebase/messaging';
+import { requestFirebaseNotificationPermission } from './utils/notifications';
 import { useAuthStore } from './store/authStore';
-
-/*Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});*/
+import { useRouter } from 'expo-router';
 
 export default function RootLayout() {
+  const { checkAuth } = useAuthStore();
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const user = useAuthStore(s => s.user);
   const router = useRouter();
-  const { checkAuth } = useAuthStore()
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
 
-  // Al montar, comprobamos la cookie/token
-  useEffect(() => { checkAuth() }, [checkAuth])
-  const [fontsLoaded] = useFonts({
-    ...MaterialCommunityIcons.font,
-  })
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  useEffect(() => {
+    if (user?.idUser) {
+      requestFirebaseNotificationPermission(user.idUser);
+    }
 
-  /*useEffect(() => {
+    // Escuchar cuando la app está en foreground
+    const unsubscribeForeground = messaging().onMessage(async remoteMessage => {
+      console.log('📩 Notificación en primer plano:', remoteMessage);
+    });
 
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const screen = response.notification.request.content.data.screen;
-      if (screen === 'HomeScreen') {
-        router.push('/(tabs)');
+    // Escuchar cuando la app se abre desde una notificación (background)
+    const unsubscribeOpened = messaging().onNotificationOpenedApp(remoteMessage => {
+      const data = remoteMessage?.data;
+      console.log('🔁 App abierta desde background:', data);
+      if (data?.idAppointment) {
+        router.push(`/appointments`);
       }
     });
-    return () => subscription.remove();
-  }, [])*/
+
+    // Escuchar cuando la app se abre desde cerrada (killed)
+    messaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        if (remoteMessage) {
+          const data = remoteMessage?.data;
+          console.log('🕹️ App abierta desde notificación (cerrada):', data);
+          if (data?.idAppointment) {
+            router.push(`/appointment/${data.idAppointment}`);
+          }
+        }
+      });
+
+    return () => {
+      unsubscribeForeground();
+      unsubscribeOpened();
+    };
+  }, [user]);
 
   return (
-    <PaperProvider theme={theme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          <>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="/index.tsx" />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(patient)" />
-          </>
-        )}
-      </Stack>
-    </PaperProvider>
-  )
+    <Stack screenOptions={{ headerShown: false }}>
+      {!isAuthenticated ? (
+        <>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="/index.tsx" />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(patient)" />
+        </>
+      )}
+    </Stack>
+  );
 }

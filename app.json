@@ -18,7 +18,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.truvaldental.app",
       "infoPlist": {
-        "NSUserNotificationUsageDescription": "Esta app usa notificaciones para recordarte tus citas."
+        "NSUserNotificationUsageDescription": "Esta app usa notificaciones para recordarte tus citas.",
+        "FirebaseAppDelegateProxyEnabled": false,
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -26,7 +31,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.truvaldental.app"
+      "package": "com.truvaldental.app",
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "web": {
       "favicon": "./assets/icon.png"

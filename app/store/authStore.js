@@ -188,8 +188,8 @@ export const useAuthStore = create((set) => ({
                 return { success: true, isLoading: false, isCheckingAuth: false, isAuthenticated: true };
 
             } else {
-                set({ isLoading: false, isCheckingAuth: false, isAuthenticated: true });
-                return { success: true, isLoading: false, isCheckingAuth: false, isAuthenticated: true };
+                set({ isLoading: false, isCheckingAuth: false, isAuthenticated: true, user: data.user });
+                return { success: true, isLoading: false, isCheckingAuth: false, isAuthenticated: true, user: data.user };
             }
 
         } catch (error) {
@@ -997,7 +997,7 @@ export const useAppointment = create((set) => ({
                 throw new Error(data.message || 'Error al obtener citas');
             }
 
-            
+
             const pendientes = data.appointments.filter((a) => a.isCompleted === false);
 
             return { success: true, count: pendientes.length };
@@ -1057,11 +1057,11 @@ export const useAppointment = create((set) => ({
             // —— 4) Filtrado robusto —— 
             const pendientes = allAppointments.filter(a => {
                 const dateOnly = a.date.slice(0, 10);
-                const confirmed = Boolean(a.isConfirmed);    
+                const confirmed = Boolean(a.isConfirmed);
                 return !confirmed && weekDates.includes(dateOnly);
             });
 
-            return { success: true, count: pendientes.length }; 
+            return { success: true, count: pendientes.length };
         } catch (error) {
             return { success: false, count: 0 };
         }
