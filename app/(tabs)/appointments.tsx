@@ -187,29 +187,60 @@ export default function ScheduleScreen() {
     if (!currentAppointment) return;
 
     try {
-      // Actualización optimista
+      const newDate = new Date(date);
+      const newDay = dateToYMDLocal(date);
+      const oldDay = dateToYMDLocal(currentAppointment.dateISO);
+
       setItems(prevItems => {
         const updatedItems = { ...prevItems };
-        Object.keys(updatedItems).forEach(day => {
-          updatedItems[day] = updatedItems[day].map(apt =>
+
+        // Si el día cambió
+        if (newDay !== oldDay) {
+          // 1. Quitar del día viejo
+          if (updatedItems[oldDay]) {
+            updatedItems[oldDay] = updatedItems[oldDay].filter(
+              apt => apt.idAppointment !== currentAppointment.idAppointment
+            );
+          }
+
+          // 2. Agregar al nuevo día
+          const updatedAppointment: AgendaItem = {
+            ...currentAppointment,
+            dateISO: date,
+            treatmentType: treatmentOptions.find(t => t.value === idTreatment)?.label || currentAppointment.treatmentType,
+            time: formatToLocalTime(date),
+            isConfirmed,
+            day: newDay
+          };
+
+          if (!updatedItems[newDay]) updatedItems[newDay] = [];
+          updatedItems[newDay].push(updatedAppointment);
+
+          // Ordena las citas del nuevo día por hora
+          updatedItems[newDay].sort((a, b) =>
+            new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime()
+          );
+        } else {
+          // Día no cambió, solo actualizar datos
+          updatedItems[oldDay] = updatedItems[oldDay].map(apt =>
             apt.idAppointment === currentAppointment.idAppointment
               ? {
                 ...apt,
                 dateISO: date,
                 treatmentType: treatmentOptions.find(t => t.value === idTreatment)?.label || apt.treatmentType,
-                time: new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              } : apt
+                time: formatToLocalTime(date),
+                isConfirmed
+              }
+              : apt
           );
-        });
+        }
+
         return updatedItems;
       });
 
-      // Aquí debes implementar la llamada a tu API para actualizar la cita
       await updateAppointment(currentAppointment.idAppointment, { date, idTreatment, isConfirmed });
 
       setEditModalVisible(false);
-      loadAppointments();
-
       setSuccessModalVisible(true);
       setTimeout(() => {
         setSuccessModalVisible(false);
