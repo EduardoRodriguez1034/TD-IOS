@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
-import { Card, Title, Paragraph, Button, IconButton, Avatar } from 'react-native-paper';
+import { Card, Title, Paragraph, Button, Avatar } from 'react-native-paper';
 import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useAppointment, useAuthStore, usePatient } from '../store/authStore';
-import { scheduleDailyReminder } from '../utils/notifications';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -27,9 +26,11 @@ const HomeScreen = () => {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Si no está logueado, redirige al login
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)" />;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/(auth)");
+    }
+  }, [isAuthenticated]);
 
   const todayRange = useMemo(() => {
     const now = new Date();
@@ -79,9 +80,6 @@ const HomeScreen = () => {
     const endUTC = tomorrow.toISOString();
 
     const res = await getAppointmentByDate(startUTC, endUTC);
-    if (res.success) {
-      await scheduleDailyReminder(res.appointments.length);
-    }
   }, [getAppointmentByDate]);
 
   const fetchToday = useCallback(async () => {
@@ -115,9 +113,11 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
         <View style={styles.header}>
-          <View style={styles.titleContainer}>
+          <View style={styles.side} />
+          <View style={styles.titleWrapper}>
             <Text style={styles.clinicTitle}>Truval Dental</Text>
           </View>
+          <View style={styles.side} />
         </View>
 
         <ScrollView
@@ -204,13 +204,27 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
   },
+
+  titleWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clinicTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  side: {
+    width: 40, // suficiente para reservar espacio para un icono en el futuro
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    paddingHorizontal: 16,
+    justifyContent: 'space-between',
     paddingVertical: Platform.OS === 'ios' ? 8 : 16,
-    elevation: 4,
+    paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -224,13 +238,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignContent: 'center',
     marginRight: 48,
-  },
-  clinicTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    alignItems: 'center',
-    alignContent: 'center',
-    color: COLORS.primary,
   },
   container: {
     flex: 1,

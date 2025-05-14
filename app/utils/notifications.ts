@@ -1,8 +1,21 @@
 // utils/notifications.ts
 import messaging from '@react-native-firebase/messaging';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 export async function requestFirebaseNotificationPermission(idUser: number) {
     try {
+        if (Platform.OS === 'android') {
+            if (Platform.Version >= 33) {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    console.warn('❌ Permiso de notificaciones denegado');
+                    return;
+                }
+            }
+        }
+
         const authStatus = await messaging().requestPermission({
             alert: true,
             announcement: true,
@@ -21,7 +34,6 @@ export async function requestFirebaseNotificationPermission(idUser: number) {
         }
 
         const fcmToken = await messaging().getToken();
-        console.log('✅ FCM Token:', fcmToken);
 
         // Enviar al backend
         await fetch('https://truval-dental.ddns.net:8443/fcm-token', {

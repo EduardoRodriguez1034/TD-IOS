@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, Slot } from 'expo-router';
+import { useEffect } from 'react';
 import messaging from '@react-native-firebase/messaging';
 import { requestFirebaseNotificationPermission } from './utils/notifications';
 import { useAuthStore } from './store/authStore';
@@ -20,12 +20,10 @@ export default function RootLayout() {
       requestFirebaseNotificationPermission(user.idUser);
     }
 
-    // Escuchar cuando la app está en foreground
     const unsubscribeForeground = messaging().onMessage(async remoteMessage => {
       console.log('📩 Notificación en primer plano:', remoteMessage);
     });
 
-    // Escuchar cuando la app se abre desde una notificación (background)
     const unsubscribeOpened = messaging().onNotificationOpenedApp(remoteMessage => {
       const data = remoteMessage?.data;
       console.log('🔁 App abierta desde background:', data);
@@ -34,7 +32,6 @@ export default function RootLayout() {
       }
     });
 
-    // Escuchar cuando la app se abre desde cerrada (killed)
     messaging()
       .getInitialNotification()
       .then(remoteMessage => {
@@ -55,17 +52,26 @@ export default function RootLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {!isAuthenticated ? (
-        <>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="/index.tsx" />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(patient)" />
-        </>
-      )}
+      <Slot />
     </Stack>
   );
 }
+
+export const linking = {
+  prefixes: ['truvaldental://'],
+  config: {
+    screens: {
+      '(auth)': {
+        screens: {
+          'index': '',
+          'new-password/[token]': 'new-password/:token'
+        }
+      },
+      '(tabs)': {
+        screens: {
+          'index': 'home'
+        }
+      }
+    }
+  }
+};

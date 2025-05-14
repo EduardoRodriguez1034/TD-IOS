@@ -14,21 +14,27 @@ const LoginScreen = () => {
 
   const { login, checkAuth, error } = useAuthStore();
 
-  useEffect(()=>{
+  useEffect(() => {
     checkAuth()
   }, [checkAuth])
 
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Si ya está logueado, redirige a la home
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const result = await login(email, password);
+      if (!result.isVerified) {
+        router.replace('/verify-code')
+      }
+
       if (!result.success) {
         return;
       } else {

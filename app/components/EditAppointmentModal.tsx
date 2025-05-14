@@ -1,9 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { Modal, View, StyleSheet, Animated, TouchableOpacity, FlatList, Dimensions, Platform } from 'react-native';
-import { Button, TextInput, Text, Card } from 'react-native-paper';
+import { Button, Text, Card } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../constants/theme';
-import { DatePickerModal } from 'react-native-paper-dates';
 
 interface EditAppointmentModalProps {
     visible: boolean;

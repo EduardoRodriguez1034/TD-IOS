@@ -24,9 +24,11 @@ const VerifyCodeScreen = () => {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Si ya está logueado, redirige a la home
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
 
   const handleSubmit = async (e) => {
     try {
@@ -48,7 +50,7 @@ const VerifyCodeScreen = () => {
   }
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.container}>
         <Stack.Screen
           options={{
@@ -110,6 +112,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 40,

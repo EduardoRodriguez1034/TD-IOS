@@ -4,6 +4,8 @@ import { Card, IconButton, Searchbar, FAB, Chip, Menu, Divider } from 'react-nat
 import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { usePatient, useAppointment, useAuthStore } from '../store/authStore';
+import { SuccessModal } from '../components/SuccessModal';
+import { CreatePatientModal } from '../components/CreatePatient';
 
 const PatientsScreen = () => {
   const router = useRouter();
@@ -12,9 +14,11 @@ const PatientsScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [patients, setPatients] = useState([]);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   const { getAllAppointments } = useAppointment();
-  const { getAllPatients, error } = usePatient();
+  const { createPatient, getAllPatients, error } = usePatient();
 
   const { checkAuth } = useAuthStore();
 
@@ -25,9 +29,11 @@ const PatientsScreen = () => {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Si no está logueado, redirige al login
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)" />;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/(auth)");
+    }
+  }, [isAuthenticated]);
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -46,7 +52,11 @@ const PatientsScreen = () => {
     try {
       const response = await getAllPatients();
       if (response.success && Array.isArray(response.patient)) {
-        setPatients(response.patient)
+        const sorted = [...response.patient].sort((a, b) =>
+          a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+        );
+        setPatients(sorted);
+
       } else {
         setPatients([])
       }
@@ -74,15 +84,42 @@ const PatientsScreen = () => {
   }
 
   const isPatientActive = (idPatient: number): boolean => {
-    const lastVisit = getLastCompletedAppointment(idPatient);
-    if (!lastVisit) return false;
+    try {
 
-    const now = new Date();
-    const diffInMonths =
-      (now.getFullYear() - lastVisit.getFullYear()) * 12 +
-      (now.getMonth() - lastVisit.getMonth());
+      const lastVisit = getLastCompletedAppointment(idPatient);
+      if (!lastVisit) return false;
 
-    return diffInMonths < 8;
+      const now = new Date();
+      const diffInMonths =
+        (now.getFullYear() - lastVisit.getFullYear()) * 12 +
+        (now.getMonth() - lastVisit.getMonth());
+
+      return diffInMonths < 8;
+    } catch (error) {
+      console.error('Error al buscar estado de pacientes:', error)
+    }
+  };
+
+  const handleCreatePatient = async ({ name, lastName, surName, sex, phone, birthDate }) => {
+    try {
+      const res = await createPatient(name, lastName, surName, sex, phone, birthDate);
+      if (res.success) {
+        const updated = await getAllPatients();
+        if (updated.success && Array.isArray(updated.patient)) {
+          const sorted = [...updated.patient].sort((a, b) =>
+            a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+          );
+          setPatients(sorted);
+        }
+        setCreateModalVisible(false);
+        setSuccessModalVisible(true);
+        setTimeout(() => {
+          setSuccessModalVisible(false);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error al crear paciente:', error)
+    }
   };
 
 
@@ -94,8 +131,15 @@ const PatientsScreen = () => {
     }, [fetchPatients])
   )
 
+  const normalize = (text: string) =>
+    text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
   const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const fullName = `${patient.name || ''} ${patient.lastName || ''} ${patient.surName || ''}`.trim();
+    const normalizedName = normalize(fullName);
+    const normalizedQuery = normalize(searchQuery);
+
+    const matchesSearch = normalizedName.includes(normalizedQuery);
     const isActive = isPatientActive(patient.idPatient);
     const matchesFilter =
       selectedFilter === 'all' ||
@@ -105,7 +149,6 @@ const PatientsScreen = () => {
     return matchesSearch && matchesFilter;
   });
 
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -114,17 +157,6 @@ const PatientsScreen = () => {
         return '#9E9E9E';
       default:
         return '#757575';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Activo';
-      case 'inactive':
-        return 'Inactivo';
-      default:
-        return 'Desconocido';
     }
   };
 
@@ -241,11 +273,25 @@ const PatientsScreen = () => {
         <FAB
           icon="account-plus"
           style={styles.fab}
-          onPress={() => router.push('/new-patient')}
+          onPress={() => setCreateModalVisible(true)}
           mode="elevated"
           color="white"
           size="large"
           customSize={64}
+        />
+        <CreatePatientModal
+          visible={createModalVisible}
+          onDismiss={() => setCreateModalVisible(false)}
+          onCreate={handleCreatePatient}
+        />
+        <SuccessModal
+          visible={successModalVisible}
+          title="Tratamiento creado exitosamente"
+          message="El tratamiento ha sido registrado en el sistema."
+          buttonText="Volver al listado"
+          onDismiss={() => {
+            setSuccessModalVisible(false);
+          }}
         />
       </View>
     </SafeAreaView>
@@ -374,7 +420,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 0,
     right: 16,
-    bottom: Platform.OS === 'ios' ? 34 : 16,
+    bottom: Platform.OS === 'ios' ? 34 : 70,
     backgroundColor: COLORS.primary,
     borderRadius: 32,
     elevation: 4,

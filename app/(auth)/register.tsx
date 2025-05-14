@@ -23,9 +23,11 @@ const RegisterScreen = () => {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Si ya está logueado, redirige a la home
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
 
   const handleRegister = async (e) => {
     e.preventDefault();

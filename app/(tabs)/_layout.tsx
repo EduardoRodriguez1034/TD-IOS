@@ -1,10 +1,9 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
-import { useRouter } from 'expo-router';
 
 const customTheme = {
   ...DefaultTheme,
@@ -18,7 +17,6 @@ const customTheme = {
 };
 
 export default function TabLayout() {
-  const router = useRouter()
 
   return (
     <PaperProvider theme={customTheme}>
@@ -60,24 +58,6 @@ export default function TabLayout() {
             title: 'Inicio',
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons name="home" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="new-appointment"
-          options={{
-            title: 'Nueva Cita',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="calendar-plus" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="new-patient"
-          options={{
-            title: 'Nuevo Paciente',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="account-plus" size={size} color={color} />
             ),
           }}
         />

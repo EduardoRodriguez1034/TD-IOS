@@ -528,7 +528,7 @@ export const useTreatment = create((set) => ({
             set({ isLoading: false });
         }
     },
-    updateTreatment: async (idTreatment) => {
+    updateTreatment: async (idTreatment, { treatmentType, description, price }) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/treatment/${idTreatment}`, {
@@ -1066,7 +1066,7 @@ export const useAppointment = create((set) => ({
             return { success: false, count: 0 };
         }
     },
-    getAppointmentByPatientId: async (date, idPatient) => {
+    getAppointmentByPatientId: async (idPatient) => {
         set({ isLoading: true, error: null });
         try {
             const response = await fetch(`https://truval-dental.ddns.net:8443/appointments/patient/${idPatient}`, {
@@ -1081,7 +1081,7 @@ export const useAppointment = create((set) => ({
                 return { isLoading: false, success: false, error: data.message };
             }
 
-            return { success: true, isLoading: false, isAuthenticated: true, appointment: data.appointment };
+            return { success: true, isLoading: false, isAuthenticated: true, appointments: data.appointments };
         } catch (error) {
             set({ isLoading: false, error: error.message });
             return { isLoading: false, success: false, error: error.message };

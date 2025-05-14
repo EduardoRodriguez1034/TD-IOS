@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { View, Platform, StyleSheet, FlatList, ScrollView } from 'react-native'
+import { View, Platform, StyleSheet, ScrollView } from 'react-native'
 import { Calendar } from 'react-native-calendars'
-import { Card, Avatar, ActivityIndicator, Text, Button, Chip } from 'react-native-paper'
+import { Card, Avatar, ActivityIndicator, Text, Button, Chip, FAB } from 'react-native-paper'
 import { COLORS } from '../constants/theme';
 import { useAppointment, useAuthStore, usePatient, useTreatment } from '../store/authStore'
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Alert } from 'react-native'
+import { CreateAppointmentModal } from '../components/CreateAppointment';
 import { EditAppointmentModal } from '../components/EditAppointmentModal'
 import { SuccessModal } from '../components/SuccessModal'
-import { Redirect, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 
 interface RawAppointment {
   idAppointment: number
@@ -70,16 +71,21 @@ export default function ScheduleScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<number | null>(null);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
 
 
+  const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [currentAppointment, setCurrentAppointment] = useState<AgendaItem | null>(null);
   const [treatmentOptions, setTreatmentOptions] = useState<Array<{ label: string, value: number }>>([]);
+  const [userOptions, setUserOptions] = useState([]);
+  const [patientOptions, setPatientOptions] = useState([]);
 
-  const { getAllAppointments, completeAppointment, updateAppointment, deleteAppointment, isLoading: loadingApts } = useAppointment()
+  const { createAppointment, getAllAppointments, completeAppointment, updateAppointment, deleteAppointment, isLoading: loadingApts } = useAppointment()
   const { getAllPatients } = usePatient()
   const { getAllTreatments } = useTreatment()
+  const { getAllUsers } = useAuthStore()
   const { checkAuth } = useAuthStore();
 
   useEffect(() => {
@@ -89,9 +95,11 @@ export default function ScheduleScreen() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Si no está logueado, redirige al login
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)" />;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/(auth)");
+    }
+  }, [isAuthenticated]);
 
   const now = new Date()
   const today = [
@@ -108,7 +116,8 @@ export default function ScheduleScreen() {
       const [resA, resP, resT] = await Promise.all([
         getAllAppointments(),
         getAllPatients(),
-        getAllTreatments()
+        getAllTreatments(),
+        getAllUsers()
       ])
 
       if (!resA.success) throw new Error(resA.error || 'Error al cargar citas')
@@ -118,7 +127,6 @@ export default function ScheduleScreen() {
       const rawA: RawAppointment[] = Array.isArray(resA.appointments) ? resA.appointments : []
       const rawP: PatientInfo[] = Array.isArray(resP.patient) ? resP.patient : []
       const rawT: TreatmentInfo[] = Array.isArray(resT.treatment) ? resT.treatment : []
-
       // 2. Crea mapas para acceder rápido
       const patientMap = new Map<number, string>(
         rawP.map(p => [p.idPatient, `${p.name} ${p.lastName} ${p.surName}`])
@@ -176,12 +184,25 @@ export default function ScheduleScreen() {
   }, [getAllAppointments, getAllPatients, getAllTreatments])
 
 
-
   const handleDayPress = (day: { dateString: string }) => {
     setSelectedDate(day.dateString);
   };
 
   const dayAppointments = useMemo(() => items[selectedDate] || [], [items, selectedDate]);
+
+  const handleCreateAppointment = async ({ date, idPatient, idTreatment, idUser }) => {
+    try {
+      const res = await createAppointment({ date, idPatient, idTreatment, idUser });
+      if (res.success) {
+        setCreateModalVisible(false);
+        setSuccessModalVisible(true);
+        loadAppointments();
+        setTimeout(() => setSuccessModalVisible(false), 2000);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'No se pudo crear la cita');
+    }
+  };
 
   const handleSaveAppointment = async ({ date, idTreatment, isConfirmed }: { date: string; idTreatment: number, isConfirmed: boolean }) => {
     if (!currentAppointment) return;
@@ -336,7 +357,32 @@ export default function ScheduleScreen() {
           res.treatment.map(t => ({ label: t.treatmentType, value: t.idTreatment })))
       }
     } catch (error) {
-      console.error('Error al obtener las citas', error)
+      console.error('Error al obtener los tratamientos', error)
+    }
+  }, [])
+
+  const fetchPatients = useCallback(async () => {
+    try {
+      const res = await getAllPatients();
+      if (res.success) {
+        setPatientOptions(res.patient.map(p => ({
+          label: `${p.name} ${p.lastName} ${p.surName}`,
+          value: p.idPatient
+        })));
+      };
+    } catch (error) {
+      console.error('Error al obtener los pacientes', error)
+    }
+  }, [])
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await getAllUsers();
+      if (res.success) {
+        setUserOptions(res.user.map(u => ({ label: u.username, value: u.idUser })));
+      }
+    } catch (error) {
+      console.error('Error al obtener los dentistas', error)
     }
   }, [])
 
@@ -461,9 +507,12 @@ export default function ScheduleScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadAppointments();
+      setIsLoadingAppointments(true)
+      loadAppointments().finally(() => setIsLoadingAppointments(false));
       fetchTreatments();
-    }, [loadAppointments, fetchTreatments])
+      fetchPatients();
+      fetchUsers();
+    }, [loadAppointments, fetchTreatments, fetchPatients, fetchUsers])
   );
 
   if (loadingApts) return <ActivityIndicator style={{ flex: 1 }} />
@@ -519,8 +568,11 @@ export default function ScheduleScreen() {
       </View>
 
       {/* Sección de Citas */}
-      <ScrollView style={styles.appointmentsContainer} contentContainerStyle={{ paddingBottom: 55 }}>
-        {dayAppointments.length > 0 ? (
+      <ScrollView style={styles.appointmentsContainer} contentContainerStyle={{ paddingBottom: 75 }}>
+
+        {isLoadingAppointments ? (
+          <Text>Cargando citas...</Text>
+        ) : dayAppointments.length > 0 ? (
           dayAppointments.map((item) => (
             <View key={item.idAppointment} style={styles.appointmentItem}>
               {renderItem(item)}
@@ -546,6 +598,14 @@ export default function ScheduleScreen() {
         onConfirm={onComplete}
         onCancel={() => setCompleteModalVisible(false)}
       />
+      <CreateAppointmentModal
+        visible={createModalVisible}
+        onDismiss={() => setCreateModalVisible(false)}
+        onCreate={handleCreateAppointment}
+        patientList={patientOptions}
+        treatmentList={treatmentOptions}
+        userList={userOptions}
+      />
       <EditAppointmentModal
         visible={editModalVisible}
         appointment={currentAppointment || {
@@ -567,6 +627,15 @@ export default function ScheduleScreen() {
         onDismiss={() => {
           setSuccessModalVisible(false);
         }}
+      />
+      <FAB
+        icon="calendar-plus"
+        style={styles.fab}
+        onPress={() => setCreateModalVisible(true)}
+        mode="elevated"
+        color="white"
+        size="large"
+        customSize={64}
       />
     </View>
 
@@ -752,7 +821,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 0,
     right: 16,
-    bottom: Platform.OS === 'ios' ? 34 : 16,
+    bottom: Platform.OS === 'ios' ? 34 : 70,
     backgroundColor: COLORS.primary,
     borderRadius: 32,
     elevation: 4,

@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { useRouter, Stack, useLocalSearchParams, Redirect } from 'expo-router';
-import { COLORS } from '../../constants/theme';
-import { useAuthStore } from '../../store/authStore';
-import { SuccessModal } from '../../components/SuccessModal';
+import { COLORS } from '../constants/theme';
+import { useAuthStore } from '../store/authStore';
+import { SuccessModal } from '../components/SuccessModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NewPasswordScreen = () => {
@@ -20,19 +20,18 @@ const NewPasswordScreen = () => {
     const { token } = useLocalSearchParams();
     const { checkAuth, resetPassword, isLoading, error } = useAuthStore();
 
+    const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+
     useEffect(() => {
         checkAuth();
     }, [checkAuth])
-    
-    const isAuthenticated = useAuthStore(s => s.isAuthenticated);
-
 
     // Si ya está logueado, redirige a la home
-    if (isAuthenticated) {
-        return <Redirect href="/(tabs)" />;
-    }
-
-
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.replace("/(tabs)");
+        }
+    }, [isAuthenticated]);
 
     const validatePassword = (pass: string) => {
         const minLength = 8;
@@ -61,7 +60,6 @@ const NewPasswordScreen = () => {
                 setSuccessModalVisible(true);
                 setTimeout(() => {
                     setSuccessModalVisible(false);
-                    router.replace('/login');
                 }, 5000);
             } else {
                 return;
@@ -74,7 +72,7 @@ const NewPasswordScreen = () => {
     }
 
     return (
-        <SafeAreaView>
+        <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>
                 <Stack.Screen
                     options={{
@@ -142,7 +140,6 @@ const NewPasswordScreen = () => {
                 buttonText="Volver al inicio de sesión."
                 onDismiss={() => {
                     setSuccessModalVisible(false);
-                    router.replace('/login');
                 }}
             />
         </SafeAreaView>

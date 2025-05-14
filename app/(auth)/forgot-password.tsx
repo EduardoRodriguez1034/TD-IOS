@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { Redirect, useRouter } from 'expo-router';
@@ -20,9 +20,11 @@ const ForgotPasswordScreen = () => {
   }, [checkAuth])
 
   // Si ya está logueado, redirige a la home
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
 
   const { forgotPassword, isLoading, error } = useAuthStore();
 
@@ -53,14 +55,7 @@ const ForgotPasswordScreen = () => {
       <Stack.Screen
         options={{
           title: 'Recuperar Contraseña',
-          headerLeft: () => (
-            <Button
-              onPress={() => router.back()}
-              style={styles.backButton}
-            >
-              Volver
-            </Button>
-          ),
+          headerBackVisible: true,
           headerStyle: {
             backgroundColor: COLORS.white,
           },
@@ -90,7 +85,20 @@ const ForgotPasswordScreen = () => {
           {isLoading ? 'Cargando...' : 'Siguiente'}
         </Button>
       </View>
+
+
+      <SuccessModal
+        visible={successModalVisible}
+        title="Correo de recuperacion mandado exitosamente"
+        message="Revise su correo electronico para seguimiento."
+        buttonText="Volver al inicio de sesion"
+        onDismiss={() => {
+          setSuccessModalVisible(false);
+          router.replace('/login');
+        }}
+      />
     </View>
+
   );
 };
 

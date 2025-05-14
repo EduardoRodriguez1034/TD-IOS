@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator, Linking, Alert, Modal } from 'react-native';
-import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button, TextInput, Portal } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator, Linking, Alert } from 'react-native';
+import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button, TextInput } from 'react-native-paper';
 import { useRouter, useLocalSearchParams, useFocusEffect, Stack, Redirect } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -38,6 +38,7 @@ const PatientDetailsScreen = () => {
     const [file, setFile] = useState<SelectedFile | null>(null);
     const [loading, setLoading] = useState(true);
     const [appointments, setAppointments] = useState<any[]>([]);
+    const [patientAppointments, setPatientAppointments] = useState([]);
     const [nextTreatment, setNextTreatment] = useState<string | null>(null);
     const [informedConsent, setInformedConsent] = useState<InformedConsent | null>(null);
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -68,11 +69,19 @@ const PatientDetailsScreen = () => {
     const { getClinicalRecordByPatientId } = useClinicalRecord();
     const { getATreatment } = useTreatment();
     const { getInformedConsent } = useInformedConsent();
-    const { getNextAppointmentForPatient } = useAppointment();
+    const { getNextAppointmentForPatient, getAppointmentByPatientId } = useAppointment();
     const { idPatient } = useLocalSearchParams();
     const { createNote, getNoteByPatientId, deleteNote, updateNote } = useNote();
 
     const { checkAuth } = useAuthStore();
+
+
+    type SelectedFile = {
+        uri: string;
+        name: string;
+        type: string;
+    };
+    type InformedConsent = { filename: string; url: string };
 
     useEffect(() => {
         checkAuth();
@@ -81,16 +90,12 @@ const PatientDetailsScreen = () => {
     const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
     // Si no está logueado, redirige al login
-    if (!isAuthenticated) {
-        return <Redirect href="/(auth)" />;
-    }
+    useEffect(() => {
+        if (!isAuthenticated) {
+            router.replace("/(auth)");
+        }
+    }, [isAuthenticated]);
 
-    type SelectedFile = {
-        uri: string;
-        name: string;
-        type: string;
-    };
-    type InformedConsent = { filename: string; url: string };
 
     const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
     const nextAppointment = useMemo(() => {
@@ -115,6 +120,17 @@ const PatientDetailsScreen = () => {
             console.error('Error fetching patient:', response.error);
         }
     }, [idPatient, getAPatient]);
+
+    const fetchAppointmentsForPatient = useCallback(async () => {
+        if (!idPatient) return;
+        const res = await getAppointmentByPatientId(idPatient);
+        console.log(res);
+        if (res.success && Array.isArray(res.appointments)) {
+            setPatientAppointments(res.appointments);
+        } else {
+            setPatientAppointments([]);
+        }
+    }, [idPatient, getAppointmentByPatientId]);
 
     const fetchNextAppointment = useCallback(async () => {
         if (!idPatient) return;
@@ -186,11 +202,34 @@ const PatientDetailsScreen = () => {
         }
     }, [idPatient, getNoteByPatientId]);
 
+
+    const isPatientActive = (): boolean => {
+        if (!patientAppointments.length) return false;
+
+        const completedAppointments = patientAppointments.filter(a => a.isCompleted);
+
+        if (completedAppointments.length === 0) return false;
+
+        const lastVisit = completedAppointments.reduce((latest, current) => {
+            return new Date(current.date) > new Date(latest.date) ? current : latest;
+        });
+
+        const now = new Date();
+        const lastDate = new Date(lastVisit.date);
+
+        const diffInMonths =
+            (now.getFullYear() - lastDate.getFullYear()) * 12 +
+            (now.getMonth() - lastDate.getMonth());
+
+        return diffInMonths < 8;
+    };
+
     useEffect(() => { fetchPatient(); }, [fetchPatient]);
     useEffect(() => { fetchClinicalRecord(); }, [fetchClinicalRecord]);
     useEffect(() => { fetchTreatmentsNames(); }, [fetchTreatmentsNames]);
     useEffect(() => { fetchConsent(); }, [fetchConsent]);
     useEffect(() => { fetchPatientNotes(); }, [fetchPatientNotes]);
+    useEffect(() => { fetchAppointmentsForPatient(); }, [fetchAppointmentsForPatient]);
 
     useFocusEffect(
         useCallback(() => {
@@ -209,16 +248,6 @@ const PatientDetailsScreen = () => {
         }
     };
 
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'active':
-                return 'Activo';
-            case 'inactive':
-                return 'Inactivo';
-            default:
-                return 'Desconocido';
-        }
-    };
 
     const getFullName = () => {
         return [patient.name, patient.lastName, patient.surName]
@@ -394,24 +423,17 @@ const PatientDetailsScreen = () => {
     }
     return (
         <SafeAreaView style={styles.safeArea}>
+            {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
             <Stack.Screen
                 options={{
                     title: 'Información del paciente',
-                    headerLeft: () => (
-                        <Button
-                            onPress={() => router.push('/patients')}
-                            style={styles.backButton}
-                        >
-                            Volver
-                        </Button>
-                    ),
+                    headerBackVisible: true,
                     headerStyle: {
                         backgroundColor: COLORS.white,
                     },
                     headerShadowVisible: false,
                 }}
             />
-            {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
             <View style={styles.mainContainer}>
                 <View style={styles.header}>
                     <View style={styles.titleContainer}>
@@ -442,10 +464,10 @@ const PatientDetailsScreen = () => {
                                     <Title style={styles.patientName}>{getFullName()}</Title>
                                     <Chip
                                         mode="outlined"
-                                        style={[styles.statusChip, { borderColor: getStatusColor(patient.status) }]}
-                                        textStyle={{ color: getStatusColor(patient.status) }}
+                                        style={[styles.statusChip, { borderColor: isPatientActive() ? '#4CAF50' : '#9E9E9E' }]}
+                                        textStyle={{ color: isPatientActive() ? '#4CAF50' : '#9E9E9E' }}
                                     >
-                                        {getStatusLabel(patient.status)}
+                                        {isPatientActive() ? 'Activo' : 'Inactivo'}
                                     </Chip>
                                 </View>
                             </View>

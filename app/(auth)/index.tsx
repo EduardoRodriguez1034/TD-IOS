@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
 import { Redirect, useRouter } from 'expo-router';
 import { Title } from 'react-native-paper';
@@ -8,17 +8,20 @@ import { useAuthStore } from '../store/authStore';
 const HomePage = () => {
   const router = useRouter();
   const { checkAuth } = useAuthStore();
-  
-    useEffect(() => {
+
+  useEffect(() => {
     checkAuth();
   }, [checkAuth])
 
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   // Si ya está logueado, redirige a la home
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
+
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>

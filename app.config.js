@@ -3,6 +3,9 @@ export default ({ config }) => ({
   "expo": {
     "name": "Truval Dental",
     "slug": "truval-dental",
+    "scheme": "truvaldental",
+    "platforms": ['ios', 'android'],
+    "deepLinks": ["truvaldental://*"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
