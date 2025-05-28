@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { View, Platform, StyleSheet, ScrollView } from 'react-native'
+import { View, Platform, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native'
 import { Calendar } from 'react-native-calendars'
 import { Card, Avatar, ActivityIndicator, Text, Button, Chip, FAB } from 'react-native-paper'
 import { COLORS } from '../constants/theme';
@@ -7,9 +7,23 @@ import { useAppointment, useAuthStore, usePatient, useTreatment } from '../store
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Alert } from 'react-native'
 import { CreateAppointmentModal } from '../components/CreateAppointment';
-import { EditAppointmentModal } from '../components/EditAppointmentModal'
+import EditAppointmentModal from '../components/EditAppointmentModal'
 import { SuccessModal } from '../components/SuccessModal'
 import { Redirect, router, useFocusEffect } from 'expo-router';
+
+export interface AgendaItem {
+  idAppointment: number
+  dateISO: string        // ISO completo
+  isCompleted: boolean
+  time: string           // hh:mm
+  patientName: string
+  patientPhone: string
+  treatmentType: string
+  isConfirmed: boolean
+  name: string;
+  height: number;
+  day: string;
+}
 
 interface RawAppointment {
   idAppointment: number
@@ -33,19 +47,7 @@ interface TreatmentInfo {
   treatmentType: string
 }
 
-interface AgendaItem {
-  idAppointment: number
-  dateISO: string        // ISO completo
-  isCompleted: boolean
-  time: string           // hh:mm
-  patientName: string
-  patientPhone: string
-  treatmentType: string
-  isConfirmed: boolean
-  name: string;
-  height: number;
-  day: string;
-}
+const { height } = Dimensions.get('window');
 
 function dateToYMDLocal(iso: string) {
   const localDate = new Date(iso);
@@ -569,10 +571,9 @@ export default function ScheduleScreen() {
 
       {/* Sección de Citas */}
       <ScrollView style={styles.appointmentsContainer} contentContainerStyle={{ paddingBottom: 75 }}>
-
         {isLoadingAppointments ? (
           <Text>Cargando citas...</Text>
-        ) : dayAppointments.length > 0 ? (
+        ) : Array.isArray(dayAppointments) && dayAppointments.length > 0 ? (
           dayAppointments.map((item) => (
             <View key={item.idAppointment} style={styles.appointmentItem}>
               {renderItem(item)}
@@ -821,7 +822,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 0,
     right: 16,
-    bottom: Platform.OS === 'ios' ? 34 : 70,
+    bottom: Platform.OS === 'ios' ? (height >= 812 ? 110 : 100) : 80,
     backgroundColor: COLORS.primary,
     borderRadius: 32,
     elevation: 4,

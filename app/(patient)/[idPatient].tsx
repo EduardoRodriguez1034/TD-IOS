@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Platform, SafeAreaView, ActivityIndicator, Linking, Alert } from 'react-native';
-import { Text, Card, Title, Avatar, Chip, Divider, IconButton, FAB, Button, TextInput } from 'react-native-paper';
-import { useRouter, useLocalSearchParams, useFocusEffect, Stack, Redirect } from 'expo-router';
+import { Text, Card, Title, Avatar, Chip, Divider, IconButton, Button, TextInput } from 'react-native-paper';
+import { useRouter, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
 import { COLORS } from '../constants/theme';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 import { usePatient, useClinicalRecord, useTreatment, useInformedConsent, useAppointment, useNote, useAuthStore } from '../store/authStore';
 import { EditPatientModal } from '../components/EditPatientModal'
 import { SuccessModal } from '../components/SuccessModal'
@@ -31,6 +33,7 @@ const reverseNoteTypeMapping = {
 
 const PatientDetailsScreen = () => {
     const router = useRouter();
+    const { idPatient } = useLocalSearchParams();
     const [patient, setPatient] = useState(null);
     const [clinical, setClinicalRecord] = useState(null);
     const [isLoadingTreatments, setIsLoadingTreatments] = useState(false);
@@ -44,6 +47,13 @@ const PatientDetailsScreen = () => {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [isEditingNotes, setIsEditingNotes] = useState(false);
+    const [history, setHistory] = useState<Array<{
+        idTreatment: number;
+        treatmentType: string;
+        datePerformed: string;
+    }>>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
     const [notes, setNotes] = useState<Array<{
         idNote: number;
         title: string;
@@ -70,11 +80,9 @@ const PatientDetailsScreen = () => {
     const { getATreatment } = useTreatment();
     const { getInformedConsent } = useInformedConsent();
     const { getNextAppointmentForPatient, getAppointmentByPatientId } = useAppointment();
-    const { idPatient } = useLocalSearchParams();
     const { createNote, getNoteByPatientId, deleteNote, updateNote } = useNote();
 
     const { checkAuth } = useAuthStore();
-
 
     type SelectedFile = {
         uri: string;
@@ -96,6 +104,13 @@ const PatientDetailsScreen = () => {
         }
     }, [isAuthenticated]);
 
+    // Si no hay idPatient, redirigir a la lista de pacientes
+    useEffect(() => {
+        if (!idPatient) {
+            router.replace('/(tabs)/patients');
+            return;
+        }
+    }, [idPatient, router]);
 
     const todayStr = useMemo(() => (new Date()).toISOString().split('T')[0], []);
     const nextAppointment = useMemo(() => {
@@ -124,7 +139,6 @@ const PatientDetailsScreen = () => {
     const fetchAppointmentsForPatient = useCallback(async () => {
         if (!idPatient) return;
         const res = await getAppointmentByPatientId(idPatient);
-        console.log(res);
         if (res.success && Array.isArray(res.appointments)) {
             setPatientAppointments(res.appointments);
         } else {
@@ -152,32 +166,20 @@ const PatientDetailsScreen = () => {
         }
     }, [getNextAppointmentForPatient, todayStr, idPatient])
 
-    const fetchClinicalRecord = useCallback(async () => {
+    const fetchClinicalHistory = useCallback(async () => {
         if (!idPatient) return;
-        const response = await getClinicalRecordByPatientId(idPatient);
-        if (response.success) {
-            setClinicalRecord(response.clinical);
-        } else {
-            console.error('Error fetching clinical record:', response.error);
+        setIsLoadingHistory(true);
+        try {
+            const response = await getClinicalRecordByPatientId(idPatient);
+            console.log(response)
+            if (response.success) {
+                setHistory(response.history);
+            }
+        } finally {
+            setIsLoadingHistory(false);
         }
     }, [idPatient, getClinicalRecordByPatientId]);
 
-    const fetchTreatmentsNames = useCallback(async () => {
-        if (clinical?.treatmentsDone && clinical.treatmentsDone.length > 0) {
-            setIsLoadingTreatments(true);
-            try {
-                const names = await Promise.all(clinical.treatmentsDone.map(async (idTreatment) => {
-                    const response = await getATreatment(idTreatment);
-                    return response.success ? response.treatment.treatmentType : null;
-                }));
-                setTreatmentNames(names.filter(Boolean)); // Filtramos los nulls
-            } catch (error) {
-                console.error('Error fetching treatment names:', error);
-            } finally {
-                setIsLoadingTreatments(false);
-            }
-        }
-    }, [clinical, getATreatment]);
 
     const fetchConsent = useCallback(async () => {
         try {
@@ -225,11 +227,10 @@ const PatientDetailsScreen = () => {
     };
 
     useEffect(() => { fetchPatient(); }, [fetchPatient]);
-    useEffect(() => { fetchClinicalRecord(); }, [fetchClinicalRecord]);
-    useEffect(() => { fetchTreatmentsNames(); }, [fetchTreatmentsNames]);
     useEffect(() => { fetchConsent(); }, [fetchConsent]);
     useEffect(() => { fetchPatientNotes(); }, [fetchPatientNotes]);
     useEffect(() => { fetchAppointmentsForPatient(); }, [fetchAppointmentsForPatient]);
+    useEffect(() => { fetchClinicalHistory(); }, [fetchClinicalHistory])
 
     useFocusEffect(
         useCallback(() => {
@@ -276,13 +277,26 @@ const PatientDetailsScreen = () => {
 
     const handleSelectFile = async () => {
         try {
-            const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*',
-                copyToCacheDirectory: Platform.OS !== 'web', // Solo copiar en móvil
-            });
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                alert('Permiso denegado para acceder al almacenamiento');
+                return;
+            }
+            const result = await DocumentPicker.getDocumentAsync();
 
-            if (!result.canceled && result.assets && result.assets.length > 0) {
+            if (!result.canceled && result.assets) {
                 const selectedFile = result.assets[0];
+
+                // Para Android 10+, copiamos el archivo a un directorio accesible
+                if (Platform.OS === 'android' && selectedFile.uri.startsWith('content://')) {
+                    const newUri = FileSystem.cacheDirectory + selectedFile.name;
+                    await FileSystem.copyAsync({
+                        from: selectedFile.uri,
+                        to: newUri
+                    });
+                    selectedFile.uri = newUri;
+                }
+
                 setFile({
                     uri: selectedFile.uri,
                     name: selectedFile.name,
@@ -291,7 +305,7 @@ const PatientDetailsScreen = () => {
             }
         } catch (error) {
             console.error('Error al seleccionar archivo:', error);
-            alert('Error al seleccionar el archivo');
+            alert('Error al seleccionar el archivo: ' + error.message);
         }
     };
 
@@ -426,22 +440,23 @@ const PatientDetailsScreen = () => {
             {error && <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>}
             <Stack.Screen
                 options={{
-                    title: 'Información del paciente',
-                    headerBackVisible: true,
-                    headerStyle: {
-                        backgroundColor: COLORS.white,
-                    },
-                    headerShadowVisible: false,
+                    headerShown: false,
                 }}
             />
             <View style={styles.mainContainer}>
-                <View style={styles.header}>
+                <View style={[styles.header, { marginTop: Platform.OS === 'ios' ? 10 : 0 }]}>
+                    <IconButton
+                        icon="arrow-left"
+                        size={20}
+                        onPress={() => router.push('/(tabs)/patients')}
+                        style={styles.backIcon}
+                    />
                     <View style={styles.titleContainer}>
                         <Text style={styles.screenTitle}>Detalles del Paciente</Text>
                     </View>
                     <IconButton
                         icon="pencil"
-                        size={24}
+                        size={20}
                         onPress={() => handleEditPress()}
                         style={styles.editIcon}
                     />
@@ -672,29 +687,28 @@ const PatientDetailsScreen = () => {
                             <View style={styles.infoSection}>
                                 <Title style={styles.sectionTitle}>Historial de Tratamientos</Title>
 
-                                {isLoadingTreatments ? (
-                                    <Text>Cargando tratamientos...</Text>
-                                ) : clinical && clinical.treatmentsDone && clinical.treatmentsDone.length > 0 ? (
-                                    clinical.treatmentsDone.map((idTreatment, index) => (
-                                        <Card key={`${idTreatment}-${index}`} style={styles.treatmentCard}>
+                                {isLoadingHistory ? (
+                                    <ActivityIndicator />
+                                ) : history.length === 0 ? (
+                                    <Text>No hay tratamientos registrados.</Text>
+                                ) : (
+                                    history.map(item => (
+                                        <Card key={`${item.idTreatment}-${item.datePerformed}`} style={styles.treatmentCard}>
                                             <Card.Content>
                                                 <View style={styles.treatmentHeader}>
-                                                    <Text style={styles.treatmentType}>
-                                                        {treatmentNames[index] || 'Tratamiento'}
-                                                    </Text>
+                                                    <Text style={styles.treatmentType}>{item.treatmentType}</Text>
                                                     <Text style={styles.treatmentDate}>
-                                                        {new Date().toLocaleDateString('es-ES')}
+                                                        {new Date(item.datePerformed)
+                                                            .toLocaleDateString('es-ES', {
+                                                                day: '2-digit',
+                                                                month: '2-digit',
+                                                                year: 'numeric'
+                                                            })}
                                                     </Text>
                                                 </View>
-                                                <Text style={styles.treatmentNotes}>
-                                                    {/* Aquí también podrías traer notas reales si las tienes */}
-                                                    Notas del tratamiento.
-                                                </Text>
                                             </Card.Content>
                                         </Card>
                                     ))
-                                ) : (
-                                    <Text>No hay tratamientos registrados</Text>
                                 )}
                             </View>
                             <View style={styles.infoSection}>
@@ -745,16 +759,6 @@ const PatientDetailsScreen = () => {
                         </Card.Content>
                     </Card>
                 </ScrollView>
-
-                <FAB
-                    icon="calendar-plus"
-                    style={styles.fab}
-                    onPress={() => router.push('/new-appointment')}
-                    mode="elevated"
-                    color="white"
-                    size="large"
-                    customSize={64}
-                />
             </View>
 
             <EditPatientModal
@@ -824,13 +828,16 @@ const styles = StyleSheet.create({
     },
     mainContainer: {
         flex: 1,
+        backgroundColor: COLORS.lightGray,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         backgroundColor: 'white',
-        paddingHorizontal: 16,
-        paddingVertical: Platform.OS === 'ios' ? 8 : 16,
+        paddingHorizontal: 4,
+        paddingVertical: 0,
+        height: Platform.OS === 'ios' ? 30 : 34,
         elevation: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -840,20 +847,29 @@ const styles = StyleSheet.create({
     titleContainer: {
         flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 40,
     },
     screenTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontWeight: '600',
         color: COLORS.primary,
+        textAlign: 'center',
+    },
+    backIcon: {
+        margin: 0,
+        padding: 0,
     },
     editIcon: {
         margin: 0,
+        padding: 0,
     },
     container: {
         flex: 1,
     },
     scrollContent: {
         padding: 16,
+        paddingTop: 8,
         paddingBottom: Platform.OS === 'ios' ? 120 : 100,
     },
     card: {
@@ -912,7 +928,7 @@ const styles = StyleSheet.create({
         color: '#000',
     },
     treatmentCard: {
-        marginBottom: 12,
+        marginBottom: 20,
         borderRadius: 8,
     },
     treatmentHeader: {

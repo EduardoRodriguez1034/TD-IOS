@@ -8,19 +8,16 @@ import { useAuthStore } from '../store/authStore';
 const HomePage = () => {
   const router = useRouter();
   const { checkAuth } = useAuthStore();
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth])
+  }, [checkAuth]);
 
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
-
-  // Si ya está logueado, redirige a la home
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/(tabs)");
-    }
-  }, [isAuthenticated]);
+  // En lugar de usar router.replace, usamos el componente Redirect
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <View style={styles.container}>

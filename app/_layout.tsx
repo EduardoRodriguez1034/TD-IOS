@@ -4,6 +4,7 @@ import messaging from '@react-native-firebase/messaging';
 import { requestFirebaseNotificationPermission } from './utils/notifications';
 import { useAuthStore } from './store/authStore';
 import { useRouter } from 'expo-router';
+import '../firebaseConfig'; // Esto inicializa Firebase
 
 export default function RootLayout() {
   const { checkAuth } = useAuthStore();

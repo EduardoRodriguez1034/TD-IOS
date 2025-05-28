@@ -1,7 +1,7 @@
 // NewAppointmentModal.js
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import { Modal, Portal, Text, Button, Title, Card, Menu } from 'react-native-paper';
+import { View, StyleSheet, Platform, Modal } from 'react-native';
+import { Portal, Text, Button, Menu } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../constants/theme';
 
@@ -29,7 +29,7 @@ export const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
 }) => {
     const [dateTime, setDateTime] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
     const [patient, setPatient] = useState<number | null>(null);
     const [treatment, setTreatment] = useState<number | null>(null);
     const [user, setUser] = useState<number | null>(null);
@@ -44,12 +44,10 @@ export const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         }
     }, [visible]);
 
-    const buildISOString = () => new Date(dateTime).toISOString();
-
     const handleCreate = () => {
         if (!dateTime || !patient || !treatment || !user) return;
         onCreate({
-            date: buildISOString(),
+            date: dateTime.toISOString(),
             idPatient: patient,
             idTreatment: treatment,
             idUser: user,
@@ -57,159 +55,284 @@ export const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     };
 
     return (
-        <Portal>
-            <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modalContainer}>
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <Title style={styles.modalTitle}>Nueva Cita</Title>
+        <Modal transparent visible={visible} animationType="fade">
+            <View style={styles.overlay}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.card}>
+                        <View style={styles.cardContent}>
+                            <Text style={styles.title}>Nueva Cita</Text>
 
-                        <Text style={styles.label}>Paciente</Text>
-                        <Menu
-                            visible={visibleMenus.patient}
-                            onDismiss={() => setVisibleMenus(prev => ({ ...prev, patient: false }))}
-                            anchor={
-                                <Button mode="outlined" onPress={() => setVisibleMenus(prev => ({ ...prev, patient: true }))}>
-                                    {patientList.find(p => p.value === patient)?.label || 'Selecciona paciente'}
-                                </Button>
-                            }
-                        >
-                            {patientList.map(item => (
-                                <Menu.Item
-                                    key={item.value}
-                                    onPress={() => {
-                                        setPatient(item.value);
-                                        setVisibleMenus(prev => ({ ...prev, patient: false }));
-                                    }}
-                                    title={item.label}
-                                />
-                            ))}
-                        </Menu>
+                            <Text style={styles.label}>Paciente</Text>
+                            <Menu
+                                visible={visibleMenus.patient}
+                                onDismiss={() => setVisibleMenus(prev => ({ ...prev, patient: false }))}
+                                anchor={
+                                    <Button 
+                                        mode="outlined" 
+                                        onPress={() => setVisibleMenus(prev => ({ ...prev, patient: true }))}
+                                        style={styles.menuButton}
+                                    >
+                                        {patientList.find(p => p.value === patient)?.label || 'Selecciona paciente'}
+                                    </Button>
+                                }
+                            >
+                                {patientList.map(item => (
+                                    <Menu.Item
+                                        key={item.value}
+                                        onPress={() => {
+                                            setPatient(item.value);
+                                            setVisibleMenus(prev => ({ ...prev, patient: false }));
+                                        }}
+                                        title={item.label}
+                                    />
+                                ))}
+                            </Menu>
 
-                        <Text style={styles.label}>Fecha y Hora</Text>
-                        <Button mode="outlined" onPress={() => setShowDatePicker(true)}>
-                            {dateTime.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
-                        </Button>
-
-                        {showDatePicker && (
-                            <DateTimePicker
-                                value={dateTime}
-                                mode="date"
-                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                onChange={(event, selectedDate) => {
-                                    setShowDatePicker(false);
-                                    if (selectedDate) {
-                                        const updatedDate = new Date(dateTime);
-                                        updatedDate.setFullYear(selectedDate.getFullYear());
-                                        updatedDate.setMonth(selectedDate.getMonth());
-                                        updatedDate.setDate(selectedDate.getDate());
-                                        setDateTime(updatedDate);
-                                        setShowTimePicker(true);
-                                    }
+                            <Text style={styles.label}>Fecha y Hora</Text>
+                            <Button
+                                mode="outlined"
+                                onPress={() => {
+                                    setPickerMode('date');
+                                    setShowDatePicker(true);
                                 }}
-                            />
-                        )}
+                                style={styles.dateButton}
+                                icon="calendar"
+                            >
+                                {dateTime.toLocaleString('es-MX', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short'
+                                })}
+                            </Button>
 
-                        {showTimePicker && (
-                            <DateTimePicker
-                                value={dateTime}
-                                mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowTimePicker(false);
-                                    if (selectedTime) {
-                                        const updatedTime = new Date(dateTime);
-                                        updatedTime.setHours(selectedTime.getHours());
-                                        updatedTime.setMinutes(selectedTime.getMinutes());
-                                        setDateTime(updatedTime);
-                                    }
-                                }}
-                            />
-                        )}
+                            {showDatePicker && Platform.OS === 'ios' && (
+                                <View style={styles.datePickerContainer}>
+                                    <DateTimePicker
+                                        value={dateTime}
+                                        mode={pickerMode}
+                                        is24Hour={false}
+                                        display="spinner"
+                                        onChange={(event, selectedDate) => {
+                                            if (selectedDate) {
+                                                setDateTime(selectedDate);
+                                            }
+                                        }}
+                                    />
+                                    <View style={styles.datePickerButtons}>
+                                        <Button 
+                                            mode="text"
+                                            onPress={() => setShowDatePicker(false)}
+                                            style={styles.datePickerButton}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button 
+                                            mode="contained"
+                                            onPress={() => setShowDatePicker(false)}
+                                            style={styles.datePickerButton}
+                                        >
+                                            Listo
+                                        </Button>
+                                    </View>
+                                </View>
+                            )}
 
-                        <Text style={styles.label}>Tratamiento</Text>
-                        <Menu
-                            visible={visibleMenus.treatment}
-                            onDismiss={() => setVisibleMenus(prev => ({ ...prev, treatment: false }))}
-                            anchor={
-                                <Button mode="outlined" onPress={() => setVisibleMenus(prev => ({ ...prev, treatment: true }))}>
-                                    {treatmentList.find(t => t.value === treatment)?.label || 'Selecciona tratamiento'}
-                                </Button>
-                            }
-                        >
-                            {treatmentList.map(item => (
-                                <Menu.Item
-                                    key={item.value}
-                                    onPress={() => {
-                                        setTreatment(item.value);
-                                        setVisibleMenus(prev => ({ ...prev, treatment: false }));
+                            {showDatePicker && Platform.OS === 'android' && (
+                                <DateTimePicker
+                                    value={dateTime}
+                                    mode={pickerMode}
+                                    is24Hour={false}
+                                    display="default"
+                                    onChange={(event, selectedDate) => {
+                                        setShowDatePicker(false);
+                                        if (event.type === 'set' && selectedDate) {
+                                            setDateTime(selectedDate);
+                                        }
                                     }}
-                                    title={item.label}
                                 />
-                            ))}
-                        </Menu>
+                            )}
 
-                        <Text style={styles.label}>Dentista</Text>
-                        <Menu
-                            visible={visibleMenus.user}
-                            onDismiss={() => setVisibleMenus(prev => ({ ...prev, user: false }))}
-                            anchor={
-                                <Button mode="outlined" onPress={() => setVisibleMenus(prev => ({ ...prev, user: true }))}>
-                                    {userList.find(u => u.value === user)?.label || 'Selecciona dentista'}
-                                </Button>
-                            }
-                        >
-                            {userList.map(item => (
-                                <Menu.Item
-                                    key={item.value}
-                                    onPress={() => {
-                                        setUser(item.value);
-                                        setVisibleMenus(prev => ({ ...prev, user: false }));
-                                    }}
-                                    title={item.label}
-                                />
-                            ))}
-                        </Menu>
+                            <Text style={styles.label}>Tratamiento</Text>
+                            <Menu
+                                visible={visibleMenus.treatment}
+                                onDismiss={() => setVisibleMenus(prev => ({ ...prev, treatment: false }))}
+                                anchor={
+                                    <Button 
+                                        mode="outlined" 
+                                        onPress={() => setVisibleMenus(prev => ({ ...prev, treatment: true }))}
+                                        style={styles.menuButton}
+                                    >
+                                        {treatmentList.find(t => t.value === treatment)?.label || 'Selecciona tratamiento'}
+                                    </Button>
+                                }
+                            >
+                                {treatmentList.map(item => (
+                                    <Menu.Item
+                                        key={item.value}
+                                        onPress={() => {
+                                            setTreatment(item.value);
+                                            setVisibleMenus(prev => ({ ...prev, treatment: false }));
+                                        }}
+                                        title={item.label}
+                                    />
+                                ))}
+                            </Menu>
 
-                        <View style={styles.buttonRow}>
-                            <Button mode="outlined" onPress={onDismiss} style={styles.button}>Cancelar</Button>
-                            <Button mode="contained" onPress={handleCreate} style={styles.button}>Crear</Button>
+                            <Text style={styles.label}>Dentista</Text>
+                            <Menu
+                                visible={visibleMenus.user}
+                                onDismiss={() => setVisibleMenus(prev => ({ ...prev, user: false }))}
+                                anchor={
+                                    <Button 
+                                        mode="outlined" 
+                                        onPress={() => setVisibleMenus(prev => ({ ...prev, user: true }))}
+                                        style={styles.menuButton}
+                                    >
+                                        {userList.find(u => u.value === user)?.label || 'Selecciona dentista'}
+                                    </Button>
+                                }
+                            >
+                                {userList.map(item => (
+                                    <Menu.Item
+                                        key={item.value}
+                                        onPress={() => {
+                                            setUser(item.value);
+                                            setVisibleMenus(prev => ({ ...prev, user: false }));
+                                        }}
+                                        title={item.label}
+                                    />
+                                ))}
+                            </Menu>
                         </View>
-                    </Card.Content>
-                </Card>
-            </Modal>
-        </Portal>
+                    </View>
+
+                    <View style={styles.bottomButtonContainer}>
+                        <Button 
+                            mode="outlined" 
+                            onPress={onDismiss}
+                            style={styles.bottomButton}
+                            labelStyle={styles.buttonLabel}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            mode="contained" 
+                            onPress={handleCreate}
+                            style={styles.bottomButton}
+                            labelStyle={styles.buttonLabel}
+                            disabled={!dateTime || !patient || !treatment || !user}
+                        >
+                            Crear
+                        </Button>
+                    </View>
+                </View>
+            </View>
+        </Modal>
     );
 };
 
 const styles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
     modalContainer: {
-        margin: 20,
-        backgroundColor: 'white',
-        borderRadius: 12,
+        flex: 1,
+        justifyContent: 'center',
         padding: 16,
     },
     card: {
         backgroundColor: 'white',
         borderRadius: 12,
-    },
-    modalTitle: {
-        fontSize: 20,
-        color: COLORS.primary,
         marginBottom: 16,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
+    },
+    cardContent: {
+        padding: 20,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 24,
+        color: COLORS.primary,
         textAlign: 'center',
     },
     label: {
         fontSize: 16,
-        marginTop: 12,
-        marginBottom: 4,
+        fontWeight: '600',
+        marginBottom: 8,
+        color: '#333',
     },
-    buttonRow: {
+    menuButton: {
+        backgroundColor: 'white',
+        borderColor: '#ccc',
+        borderWidth: 1,
+        marginBottom: 16,
+        width: '100%',
+    },
+    dateButton: {
+        backgroundColor: 'white',
+        borderColor: '#ccc',
+        borderWidth: 1,
+        marginBottom: 16,
+    },
+    datePickerContainer: {
+        backgroundColor: 'white',
+        borderRadius: 8,
+        overflow: 'hidden',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#ccc',
+    },
+    datePickerButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#f8f8f8',
+        borderTopWidth: 1,
+        borderTopColor: '#ccc',
     },
-    button: {
+    datePickerButton: {
+        minWidth: 100,
+    },
+    bottomButtonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+        backgroundColor: 'white',
+        padding: 16,
+        borderRadius: 12,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
+    },
+    bottomButton: {
         flex: 1,
-        marginHorizontal: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        height: 48,
+    },
+    buttonLabel: {
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

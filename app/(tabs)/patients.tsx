@@ -7,6 +7,8 @@ import { usePatient, useAppointment, useAuthStore } from '../store/authStore';
 import { SuccessModal } from '../components/SuccessModal';
 import { CreatePatientModal } from '../components/CreatePatient';
 
+const { height } = Dimensions.get('window');
+
 const PatientsScreen = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,7 +200,14 @@ const PatientsScreen = () => {
               <Card
                 key={patient.idPatient}
                 style={styles.patientCard}
-                onPress={() => router.push(`(patient)/${patient.idPatient}`)}
+                onPress={() => {
+                  if (patient.idPatient) {
+                    router.push({
+                      pathname: '/(patient)/[idPatient]',
+                      params: { idPatient: patient.idPatient }
+                    });
+                  }
+                }}
               >
                 <Card.Content style={styles.cardContent}>
                   <View style={styles.patientInfo}>
@@ -420,7 +429,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 0,
     right: 16,
-    bottom: Platform.OS === 'ios' ? 34 : 70,
+    bottom: Platform.OS === 'ios' ? (height >= 812 ? 110 : 100) : 80,
     backgroundColor: COLORS.primary,
     borderRadius: 32,
     elevation: 4,

@@ -35,8 +35,7 @@ export default ({ config }) => ({
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.truvaldental.app",
-      "googleServicesFile": "./android/app/google-services.json"
+      "package": "com.truvaldental.app"
     },
     "web": {
       "favicon": "./assets/icon.png"

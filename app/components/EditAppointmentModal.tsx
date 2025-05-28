@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Modal, View, StyleSheet, Animated, TouchableOpacity, FlatList, Dimensions, Platform } from 'react-native';
+import { Modal, View, StyleSheet, Animated, TouchableOpacity, FlatList, Dimensions, Platform, ScrollView } from 'react-native';
 import { Button, Text, Card } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../constants/theme';
@@ -54,13 +54,6 @@ const TreatmentDropdown = ({ treatment, setTreatment, treatmentList }) => {
         toggleDropdown();
     };
 
-    const dropdownHeight = dropdownAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [
-            0, Math.min(treatmentList.length * 50, maxDropdownHeight)
-        ]
-    })
-
     return (
         <View style={styles.dropdownContainer}>
             <TouchableOpacity
@@ -77,41 +70,28 @@ const TreatmentDropdown = ({ treatment, setTreatment, treatmentList }) => {
             </TouchableOpacity>
 
             {dropdownVisible && (
-                <Animated.View
-                    style={[
-                        styles.dropdownList,
-                        // on web, force a real number height
-                        Platform.OS === 'web'
-                            ? { height: dropdownHeight }
-                            : {}
-                    ]}
-                >
-                    <FlatList
-                        data={treatmentList}
-                        keyExtractor={(item) => item.value.toString()}
-                        style={{ flexGrow: 0 }}
-                        scrollEnabled={true}
-                        bounces={false}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={[
-                                    styles.dropdownItem,
-                                    treatment === item.value && styles.selectedItemView
-                                ]}
-                                onPress={() => selectItem(item.value)}
-                            >
-                                <Text style={treatment === item.value ? styles.selectedText : styles.itemText}>
-                                    {item.label}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    />
-                </Animated.View>
+                <View style={[styles.dropdownList, { maxHeight: maxDropdownHeight }]}>
+                    {treatmentList.map((item) => (
+                        <TouchableOpacity
+                            key={item.value.toString()}
+                            style={[
+                                styles.dropdownItem,
+                                treatment === item.value && styles.selectedItemView
+                            ]}
+                            onPress={() => selectItem(item.value)}
+                        >
+                            <Text style={treatment === item.value ? styles.selectedText : styles.itemText}>
+                                {item.label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
             )}
         </View>
     );
 };
-export const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
+
+const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     visible,
     appointment,
     treatments,
@@ -137,212 +117,296 @@ export const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     return (
         <Modal transparent visible={visible} animationType="fade">
             <View style={styles.overlay}>
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <Text style={styles.title}>Editar Cita</Text>
+                <View style={styles.modalContainer}>
+                    <Card style={styles.card}>
+                        <Card.Content style={styles.cardContent}>
+                            <Text style={styles.title}>Editar Cita</Text>
 
-                        <Text style={styles.label}>Paciente:</Text>
-                        <Text style={styles.value}>{appointment.patientName}</Text>
+                            <Text style={styles.label}>Paciente:</Text>
+                            <Text style={styles.value}>{appointment.patientName}</Text>
 
-                        <Text style={styles.label}>Fecha y Hora:</Text>
-                        <Button
-                            mode="outlined"
-                            onPress={() => {
-                                setPickerMode('date');
-                                setShowDateTimePicker(true);
-                            }}
-                            style={styles.input}
-                        >
-                            {date.toLocaleString('es-MX', {
-                                dateStyle: 'medium',
-                                timeStyle: 'short'
-                            })}
-                        </Button>
-
-                        {showDateTimePicker && (
-                            <DateTimePicker
-                                value={date}
-                                mode={pickerMode}
-                                is24Hour={false}
-                                display="default"
-                                onChange={(event, selectedDate) => {
-                                    if (event.type === 'set' && selectedDate) {
-                                        if (pickerMode === 'date') {
-                                            const updated = new Date(date);
-                                            updated.setFullYear(selectedDate.getFullYear());
-                                            updated.setMonth(selectedDate.getMonth());
-                                            updated.setDate(selectedDate.getDate());
-                                            setDate(updated);
-
-                                            setPickerMode('time');
-                                            setShowDateTimePicker(true);
-
-                                        } else {
-                                            const updated = new Date(date);
-                                            updated.setHours(selectedDate.getHours());
-                                            updated.setMinutes(selectedDate.getMinutes());
-                                            setDate(updated);
-                                            setShowDateTimePicker(false);
-                                        }
-                                    } else {
-                                        setShowDateTimePicker(false); // cancelado
-                                    }
-                                }}
-                            />
-                        )}
-
-                        <Text style={styles.label}>Tratamiento:</Text>
-                        <View style={{ zIndex: 2 }}>
-
-                            <TreatmentDropdown
-                                treatment={selectedTreatment}
-                                setTreatment={setSelectedTreatment}
-                                treatmentList={treatments}
-                            />
-                        </View>
-                        <Text style={styles.label}>¿Confirmada?</Text>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 10 }}>
-                            <Button
-                                mode={confirmed ? 'contained' : 'outlined'}
-                                onPress={() => setConfirmed(true)}
-                                style={{ flex: 1, marginRight: 5 }}
-                            >
-                                Confirmada
-                            </Button>
-                            <Button
-                                mode={!confirmed ? 'contained' : 'outlined'}
-                                onPress={() => setConfirmed(false)}
-                                style={{ flex: 1, marginLeft: 5 }}
-                            >
-                                No confirmada
-                            </Button>
-                        </View>
-                        <View style={styles.buttonContainer}>
+                            <Text style={styles.label}>Fecha y Hora:</Text>
                             <Button
                                 mode="outlined"
-                                onPress={onCancel}
-                                style={styles.button}
+                                onPress={() => {
+                                    setPickerMode('date');
+                                    setShowDateTimePicker(true);
+                                }}
+                                style={styles.dateButton}
                             >
-                                Cancelar
+                                {date.toLocaleString('es-MX', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short'
+                                })}
                             </Button>
-                            <Button
-                                mode="contained"
-                                onPress={handleSave}
-                                style={styles.button}
-                            >
-                                Guardar
-                            </Button>
-                        </View>
-                    </Card.Content>
-                </Card>
+
+                            {showDateTimePicker && Platform.OS === 'ios' && (
+                                <View style={styles.datePickerContainer}>
+                                    <DateTimePicker
+                                        value={date}
+                                        mode={pickerMode}
+                                        is24Hour={false}
+                                        display="spinner"
+                                        onChange={(event, selectedDate) => {
+                                            if (selectedDate) {
+                                                const updated = new Date(date);
+                                                if (pickerMode === 'date') {
+                                                    updated.setFullYear(selectedDate.getFullYear());
+                                                    updated.setMonth(selectedDate.getMonth());
+                                                    updated.setDate(selectedDate.getDate());
+                                                } else {
+                                                    updated.setHours(selectedDate.getHours());
+                                                    updated.setMinutes(selectedDate.getMinutes());
+                                                }
+                                                setDate(updated);
+                                            }
+                                        }}
+                                    />
+                                    <View style={styles.datePickerButtons}>
+                                        <Button 
+                                            mode="text"
+                                            onPress={() => setShowDateTimePicker(false)}
+                                            style={styles.datePickerButton}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button 
+                                            mode="contained"
+                                            onPress={() => {
+                                                if (pickerMode === 'date') {
+                                                    setPickerMode('time');
+                                                } else {
+                                                    setShowDateTimePicker(false);
+                                                }
+                                            }}
+                                            style={styles.datePickerButton}
+                                        >
+                                            {pickerMode === 'date' ? 'Siguiente' : 'Listo'}
+                                        </Button>
+                                    </View>
+                                </View>
+                            )}
+
+                            {showDateTimePicker && Platform.OS === 'android' && (
+                                <DateTimePicker
+                                    value={date}
+                                    mode={pickerMode}
+                                    is24Hour={false}
+                                    display="default"
+                                    onChange={(event, selectedDate) => {
+                                        if (event.type === 'set' && selectedDate) {
+                                            if (pickerMode === 'date') {
+                                                const updated = new Date(date);
+                                                updated.setFullYear(selectedDate.getFullYear());
+                                                updated.setMonth(selectedDate.getMonth());
+                                                updated.setDate(selectedDate.getDate());
+                                                setDate(updated);
+
+                                                setPickerMode('time');
+                                                setShowDateTimePicker(true);
+                                            } else {
+                                                const updated = new Date(date);
+                                                updated.setHours(selectedDate.getHours());
+                                                updated.setMinutes(selectedDate.getMinutes());
+                                                setDate(updated);
+                                                setShowDateTimePicker(false);
+                                            }
+                                        } else {
+                                            setShowDateTimePicker(false);
+                                        }
+                                    }}
+                                />
+                            )}
+
+                            <Text style={styles.label}>Tratamiento:</Text>
+                            <View style={styles.dropdownWrapper}>
+                                <TreatmentDropdown
+                                    treatment={selectedTreatment}
+                                    setTreatment={setSelectedTreatment}
+                                    treatmentList={treatments}
+                                />
+                            </View>
+
+                            <Text style={styles.label}>Estado de la cita</Text>
+                            <View style={styles.confirmationContainer}>
+                                <Button
+                                    mode={confirmed ? 'contained' : 'outlined'}
+                                    onPress={() => setConfirmed(true)}
+                                    style={[styles.confirmButton, confirmed && styles.activeButton]}
+                                    labelStyle={confirmed ? styles.activeButtonLabel : styles.inactiveButtonLabel}
+                                >
+                                    Confirmada
+                                </Button>
+                                <Button
+                                    mode={!confirmed ? 'contained' : 'outlined'}
+                                    onPress={() => setConfirmed(false)}
+                                    style={[styles.confirmButton, !confirmed && styles.activeButton]}
+                                    labelStyle={!confirmed ? styles.activeButtonLabel : styles.inactiveButtonLabel}
+                                >
+                                    No confirmada
+                                </Button>
+                            </View>
+                        </Card.Content>
+                    </Card>
+
+                    <View style={styles.bottomButtonContainer}>
+                        <Button
+                            mode="outlined"
+                            onPress={onCancel}
+                            style={styles.bottomButton}
+                            labelStyle={styles.buttonLabel}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            mode="contained"
+                            onPress={handleSave}
+                            style={styles.bottomButton}
+                            labelStyle={styles.buttonLabel}
+                        >
+                            Guardar
+                        </Button>
+                    </View>
+                </View>
             </View>
         </Modal>
     );
 };
 
+export default EditAppointmentModal;
+
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: 16,
+    },
     card: {
-        width: '90%',
-        borderRadius: 10,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        marginBottom: 16,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
+    },
+    cardContent: {
+        padding: 20,
     },
     title: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 20,
+        marginBottom: 24,
         color: COLORS.primary,
         textAlign: 'center',
     },
     label: {
         fontSize: 16,
         fontWeight: '600',
-        marginTop: 10,
+        marginBottom: 8,
+        color: '#333',
     },
     value: {
         fontSize: 16,
-        marginBottom: 10,
+        color: '#666',
+        marginBottom: 16,
     },
-    input: {
-        marginBottom: 15,
+    dateButton: {
         backgroundColor: 'white',
+        borderColor: '#ccc',
+        borderWidth: 1,
+        marginBottom: 16,
     },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 20,
-    },
-    button: {
-        flex: 1,
-        marginHorizontal: 5,
-    },
-    dropdownButton: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+    datePickerContainer: {
+        backgroundColor: 'white',
+        borderRadius: 8,
+        overflow: 'hidden',
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: '#ccc',
-        borderRadius: 4,
-        padding: 10,
-        backgroundColor: 'white',
     },
-    dropdownText: {
-        fontSize: 16,
+    datePickerButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#f8f8f8',
+        borderTopWidth: 1,
+        borderTopColor: '#ccc',
     },
-    dropdownIcon: {
-        fontSize: 12,
-        color: '#666',
+    datePickerButton: {
+        minWidth: 100,
     },
-    dropdownDialog: {
-        maxHeight: '60%',
-        backgroundColor: 'white',
+    dropdownWrapper: {
+        zIndex: 2,
+        marginBottom: 16,
     },
-    dropdownOptions: {
-        padding: 10,
+    confirmationContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+        marginBottom: 8,
     },
-    dropdownOption: {
-        padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+    confirmButton: {
+        flex: 1,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        height: 48,
     },
-    selectedOption: {
+    activeButton: {
         backgroundColor: COLORS.primary,
     },
-    optionText: {
+    buttonLabel: {
         fontSize: 16,
-        color: '#333',
+        fontWeight: '600',
     },
-    selectedOptionText: {
-        fontSize: 16,
+    activeButtonLabel: {
+        color: 'white',
+    },
+    inactiveButtonLabel: {
         color: COLORS.primary,
-        fontWeight: 'bold',
+    },
+    bottomButtonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+        backgroundColor: 'white',
+        padding: 16,
+        borderRadius: 12,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
+    },
+    bottomButton: {
+        flex: 1,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        height: 48,
     },
     container: {
         marginVertical: 10,
-        zIndex: 1000, // Asegura que el menú aparezca sobre otros elementos
-    },
-    buttonContent: {
-        flexDirection: 'row-reverse',
-    },
-    menuStyle: {
-        marginTop: 40, // Ajusta según sea necesario
-        width: '80%', // Controla el ancho del menú
-    },
-    item: {
-        color: '#333',
-        fontSize: 16,
-    },
-    selectedItemView: {
-        backgroundColor: '#f0f0f0',
-    },
-    selectedItem: {
-        color: COLORS.primary,
-        fontWeight: 'bold',
-        fontSize: 16,
+        zIndex: 1000,
     },
     dropdownContainer: {
         marginVertical: 10,
@@ -376,16 +440,16 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginTop: 5,
         ...Platform.select({
-            web: { overflowY: 'auto' },
-            default: { overflow: 'hidden' },
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
         }),
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        maxHeight: Dimensions.get('window').height * 0.4,
-        zIndex: 1000
     },
     dropdownItem: {
         padding: 12,
@@ -400,5 +464,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: COLORS.primary,
         fontWeight: 'bold',
+    },
+    selectedItemView: {
+        backgroundColor: '#f0f0f0',
+    },
+    selectedItem: {
+        color: COLORS.primary,
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

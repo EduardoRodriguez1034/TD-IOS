@@ -1370,10 +1370,11 @@ export const useClinicalRecord = create((set) => ({
 
             if (!response.ok) {
                 set({ error: data.message });
-                return { isLoading: false, success: false, error: data.message };
+                return { isLoading: false, success: false, error: data.message, history: [] };
             }
 
-            return { success: true, isLoading: false, isAuthenticated: true, clinical: data.clinical };
+            const hist = Array.isArray(data.history) ? data.history : [];
+            return { success: true, isLoading: false, isAuthenticated: true, history: hist };
         } catch (error) {
             set({ isLoading: false, error: error.message });
             console.error("Error al obtener historial clinico del paciente:", error);

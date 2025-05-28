@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Modal, Portal, TextInput, Button, Title, Card } from 'react-native-paper';
+import { View, StyleSheet, Platform } from 'react-native';
+import { Portal, Modal, TextInput, Button, Text } from 'react-native-paper';
 import { COLORS } from '../constants/theme';
 
 interface CreateTreatmentModalProps {
@@ -25,43 +25,55 @@ export const CreateTreatmentModal: React.FC<CreateTreatmentModalProps> = ({ visi
     return (
         <Portal>
             <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modalContainer}>
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <Title style={styles.modalTitle}>Nuevo Tratamiento</Title>
+                <View style={styles.modalContent}>
+                    <Text style={styles.title}>Nuevo Tratamiento</Text>
 
-                        <TextInput
-                            label="Nombre del Tratamiento"
-                            value={treatmentType}
-                            onChangeText={setTreatmentType}
-                            style={styles.input}
-                            mode="outlined"
-                        />
+                    <Text style={styles.label}>Nombre del Tratamiento</Text>
+                    <TextInput
+                        value={treatmentType}
+                        onChangeText={setTreatmentType}
+                        style={styles.input}
+                        mode="outlined"
+                    />
 
-                        <TextInput
-                            label="Precio"
-                            value={price}
-                            onChangeText={setPrice}
-                            keyboardType="numeric"
-                            style={styles.input}
-                            mode="outlined"
-                        />
+                    <Text style={styles.label}>Precio</Text>
+                    <TextInput
+                        value={price}
+                        onChangeText={setPrice}
+                        keyboardType="numeric"
+                        style={styles.input}
+                        mode="outlined"
+                    />
 
-                        <TextInput
-                            label="Descripción (opcional)"
-                            value={description}
-                            onChangeText={setDescription}
-                            multiline
-                            numberOfLines={3}
-                            style={styles.input}
-                            mode="outlined"
-                        />
+                    <Text style={styles.label}>Descripción (opcional)</Text>
+                    <TextInput
+                        value={description}
+                        onChangeText={setDescription}
+                        multiline
+                        numberOfLines={3}
+                        style={[styles.input, styles.textarea]}
+                        mode="outlined"
+                    />
 
-                        <View style={styles.buttonRow}>
-                            <Button mode="outlined" onPress={onDismiss} style={styles.button}>Cancelar</Button>
-                            <Button mode="contained" onPress={handleCreate} style={styles.button}>Crear</Button>
-                        </View>
-                    </Card.Content>
-                </Card>
+                    <View style={styles.buttonContainer}>
+                        <Button 
+                            mode="outlined" 
+                            onPress={onDismiss}
+                            style={styles.button}
+                            labelStyle={styles.buttonLabel}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            mode="contained" 
+                            onPress={handleCreate}
+                            style={styles.button}
+                            labelStyle={styles.buttonLabel}
+                        >
+                            Crear
+                        </Button>
+                    </View>
+                </View>
             </Modal>
         </Portal>
     );
@@ -69,31 +81,61 @@ export const CreateTreatmentModal: React.FC<CreateTreatmentModalProps> = ({ visi
 
 const styles = StyleSheet.create({
     modalContainer: {
+        backgroundColor: 'white',
+        padding: 20,
         margin: 20,
-        backgroundColor: 'white',
         borderRadius: 12,
-        padding: 16,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
     },
-    card: {
-        backgroundColor: 'white',
-        borderRadius: 12,
+    modalContent: {
+        width: '100%',
     },
-    modalTitle: {
-        fontSize: 20,
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 24,
         color: COLORS.primary,
-        marginBottom: 16,
         textAlign: 'center',
     },
+    label: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 8,
+        color: '#333',
+    },
     input: {
+        backgroundColor: 'white',
         marginBottom: 16,
     },
-    buttonRow: {
+    textarea: {
+        minHeight: 100,
+        textAlignVertical: 'top',
+    },
+    buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 16,
+        gap: 12,
+        marginTop: 24,
     },
     button: {
         flex: 1,
-        marginHorizontal: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        height: 48,
+    },
+    buttonLabel: {
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

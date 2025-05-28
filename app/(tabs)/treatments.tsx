@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView, Alert, Dimensions } from 'react-native';
 import { Text, Button, Card, Title, FAB } from 'react-native-paper';
 import { COLORS } from '../constants/theme';
 import { useAuthStore, useTreatment } from '../store/authStore';
@@ -7,6 +7,8 @@ import { Redirect, useRouter } from 'expo-router';
 import { SuccessModal } from '../components/SuccessModal';
 import { CreateTreatmentModal } from '../components/CreateTreatment';
 import { EditTreatmentModal } from '../components/EditTreatmentModal'
+
+const { height } = Dimensions.get('window');
 
 const CreateTreatment = () => {
     const router = useRouter();
@@ -305,7 +307,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         margin: 0,
         right: 16,
-        bottom: Platform.OS === 'ios' ? 34 : 70,
+        bottom: Platform.OS === 'ios' ? (height >= 812 ? 110 : 100) : 80,
         backgroundColor: COLORS.primary,
         borderRadius: 32,
         elevation: 4,

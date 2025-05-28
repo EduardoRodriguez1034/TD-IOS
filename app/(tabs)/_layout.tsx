@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, Dimensions } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
 
@@ -16,8 +16,10 @@ const customTheme = {
   },
 };
 
-export default function TabLayout() {
+const { height } = Dimensions.get('window');
+const isIphoneX = Platform.OS === 'ios' && height >= 812;
 
+export default function TabLayout() {
   return (
     <PaperProvider theme={customTheme}>
       <Tabs
@@ -25,8 +27,8 @@ export default function TabLayout() {
           tabBarActiveTintColor: COLORS.primary,
           tabBarInactiveTintColor: '#666',
           tabBarStyle: {
-            height: Platform.OS === 'ios' ? 85 : 60,
-            paddingBottom: Platform.OS === 'ios' ? 30 : 8,
+            height: Platform.OS === 'ios' ? (isIphoneX ? 95 : 85) : 65,
+            paddingBottom: Platform.OS === 'ios' ? (isIphoneX ? 35 : 25) : 12,
             paddingTop: 8,
             backgroundColor: 'white',
             borderTopWidth: 1,
